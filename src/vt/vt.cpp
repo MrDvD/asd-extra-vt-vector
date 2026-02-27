@@ -95,13 +95,13 @@ void vt::vector<value_type>::clear() {
 template<class value_type>
 void vt::vector<value_type>::push_back(vt::vector<value_type>::const_reference value) {
   if (this->_logical_size == this->_capacity) {
-    if (this->capacity == 0) {
+    if (this->_capacity == 0) {
       this->_array = new value_type[1];
-      this->capacity = 1;
+      this->_capacity = 1;
     } else {
       this->_capacity *= 2;
-      value_type new_array[capacity()] = new value_type[capacity()];
-      for (int i = 0; i < capacity() / 2; i++) {
+      value_type* new_array = new value_type[this->_capacity];
+      for (int i = 0; i < this->_capacity / 2; i++) {
         new_array[i] = this->_array[i];
       }
       this->_array = new_array;
@@ -114,13 +114,13 @@ void vt::vector<value_type>::push_back(vt::vector<value_type>::const_reference v
 template<class value_type>
 void vt::vector<value_type>::push_back(value_type&& value) {
   if (this->_logical_size == this->_capacity) {
-    if (this->capacity == 0) {
+    if (this->_capacity == 0) {
       this->_array = new value_type[1];
-      this->capacity = 1;
+      this->_capacity = 1;
     } else {
       this->_capacity *= 2;
-      value_type new_array[capacity()] = new value_type[capacity()];
-      for (int i = 0; i < capacity() / 2; i++) {
+      value_type new_array[this->_capacity] = new value_type[this->_capacity];
+      for (int i = 0; i < this->_capacity / 2; i++) {
         new_array[i] = this->_array[i];
       }
       this->_array = new_array;
