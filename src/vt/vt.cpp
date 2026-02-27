@@ -37,7 +37,7 @@ typename vt::vector<value_type>::const_reference vt::vector<value_type>::at(size
 }
 
 template<class value_type>
-typename vt::vector<value_type>::reference vt::vector<value_type>::front(size_type pos) {
+typename vt::vector<value_type>::reference vt::vector<value_type>::front() {
   if (empty()) {
     throw std::out_of_range("empty vector");
   }
@@ -46,7 +46,7 @@ typename vt::vector<value_type>::reference vt::vector<value_type>::front(size_ty
 }
 
 template<class value_type>
-typename vt::vector<value_type>::const_reference vt::vector<value_type>::front(size_type pos) const {
+typename vt::vector<value_type>::const_reference vt::vector<value_type>::front() const {
   if (empty()) {
     throw std::out_of_range("empty vector");
   }
@@ -55,21 +55,21 @@ typename vt::vector<value_type>::const_reference vt::vector<value_type>::front(s
 }
 
 template<class value_type>
-typename vt::vector<value_type>::reference vt::vector<value_type>::back(size_type pos) {
+typename vt::vector<value_type>::reference vt::vector<value_type>::back() {
   if (empty()) {
     throw std::out_of_range("empty vector");
   }
 
-  return this->_array[this->_logical_size];
+  return this->_array[this->_logical_size - 1];
 }
 
 template<class value_type>
-typename vt::vector<value_type>::const_reference vt::vector<value_type>::back(size_type pos) const {
+typename vt::vector<value_type>::const_reference vt::vector<value_type>::back() const {
   if (empty()) {
     throw std::out_of_range("empty vector");
   }
 
-  return this->_array[this->_logical_size];
+  return this->_array[this->_logical_size - 1];
 }
 
 template<class value_type>

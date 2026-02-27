@@ -17,10 +17,10 @@ namespace vt {
       const_reference operator[](size_type pos) const;
       reference at(size_type pos);
       const_reference at(size_type pos) const;
-      reference front(size_type pos);
-      const_reference front(size_type pos) const;
-      reference back(size_type pos);
-      const_reference back(size_type pos) const;
+      reference front();
+      const_reference front() const;
+      reference back();
+      const_reference back() const;
 
       bool empty() const;
       size_type size() const;
