@@ -1,44 +1,45 @@
-#include <gtest/gtest.h>
-#include "../vt/vt.h"
+#include "../vt/vt.hpp"
 
-vt::vector<int> array = {5, 7, -3, 0, 1};
+#include <gtest/gtest.h>
+
+vt::Vector<int> array = {5, 7, -3, 0, 1};
 
 TEST(VtIntVector, BasicElementAccess) {
   EXPECT_EQ(array[0], 5);
   EXPECT_EQ(array[1], 7);
   EXPECT_EQ(array[4], 1);
 
-  EXPECT_EQ(array.at(0), 5);
-  EXPECT_EQ(array.at(2), -3);
-  EXPECT_EQ(array.at(4), 1);
+  EXPECT_EQ(array.At(0), 5);
+  EXPECT_EQ(array.At(2), -3);
+  EXPECT_EQ(array.At(4), 1);
 
-  EXPECT_EQ(array.front(), 5);
-  EXPECT_EQ(array.back(), 1);
+  EXPECT_EQ(array.Front(), 5);
+  EXPECT_EQ(array.Back(), 1);
 }
 
 TEST(VtIntVector, BasicCapacity) {
-  EXPECT_FALSE(array.empty());
+  EXPECT_FALSE(array.Empty());
 
-  EXPECT_EQ(array.size(), 5);
+  EXPECT_EQ(array.Size(), 5);
 }
 
 TEST(VtIntVector, BasicModifiers) {
-  array.pop_back();
+  array.PopBack();
 
-  EXPECT_EQ(array.size(), 4);
+  EXPECT_EQ(array.Size(), 4);
 
   int item = -17;
-  array.push_back(item);
+  array.PushBack(item);
 
-  EXPECT_EQ(array.back(), item);
-  EXPECT_EQ(array.size(), 5);
+  EXPECT_EQ(array.Back(), item);
+  EXPECT_EQ(array.Size(), 5);
 
   item = 3;
-  array.push_back(item);
-  array.push_back(item);
-  array.push_back(item);
-  array.push_back(item);
+  array.PushBack(item);
+  array.PushBack(item);
+  array.PushBack(item);
+  array.PushBack(item);
 
-  EXPECT_EQ(array.back(), item);
-  EXPECT_EQ(array.size(), 9);
+  EXPECT_EQ(array.Back(), item);
+  EXPECT_EQ(array.Size(), 9);
 }

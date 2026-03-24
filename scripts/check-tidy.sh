@@ -1,3 +1,4 @@
-source_files=$(find src -type f -regex ".*.[cpp|h|cc]" | sed 's/^/\/project\//')
-docker run --user $(id -u):$(id -g) -v .:/project xianpengshen/clang-tools:21-alpine clang-tidy --config-file=/project/scripts/.clang-tidy --verify-config &&
-docker run --user $(id -u):$(id -g) -v .:/project xianpengshen/clang-tools:21-alpine clang-tidy --config-file=/project/scripts/.clang-tidy $source_files
+source_files=$(find src -type f -regex ".*.[cpp|hpp|h|cc]" | grep -v '^src/tests' | sed 's/^/\/project\//')
+sed -i "s|$(pwd)|/project|g" build/compile_commands.json
+docker run -v .:/project xianpengshen/clang-tools:21 clang-tidy --config-file=/project/scripts/.clang-tidy -p /project/build --verify-config &&
+docker run -v .:/project xianpengshen/clang-tools:21 clang-tidy --config-file=/project/scripts/.clang-tidy -p /project/build $source_files
