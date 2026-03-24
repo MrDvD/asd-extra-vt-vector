@@ -3,7 +3,6 @@
 
 #include <cstddef>
 #include <initializer_list>
-#include <span>
 #include <stdexcept>
 
 namespace vt {
@@ -15,44 +14,70 @@ class Vector {
 
 public:
   Vector(std::initializer_list<ValueType> init)
-      : capacity_(init.size())
-      , logical_size_(init.size())
-      , array_(new ValueType[this->capacity_], this->capacity_) {
+      : capacity_(init.size()), logical_size_(init.size()), array_(new ValueType[this->capacity_]) {
     for (std::size_t i = 0; i < init.size(); i++) {
-      this->array_[i] = init.begin()[i];
+      this->At(i) = init.begin()[i];
     }
+  }
+
+  // copy constructor
+  Vector(Vector& other) {
+    Vector(other.Data());
+  }
+
+  // move constructor
+  Vector(Vector&& other) noexcept
+      : array_(other.Data()), capacity_(other.Capacity()), logical_size_(other.Size()) {
+  }
+
+  // destructor
+  ~Vector() {
+    delete[] this->array_;
+  }
+
+  // copy assignment
+  Vector& operator=(const Vector& other) {
+    if (this == &other) {
+      return *this;
+    }
+    this->capacity_ = other.Capacity();
+    this->logical_size_ = other.Size();
+    for (std::size_t i = 0; i < other.Size(); i++) {
+      this->At(i) = other.Data().begin()[i];
+    }
+    return *this;
+  }
+
+  // move assignment
+  Vector& operator=(Vector&& other) noexcept {
+    this->capacity_ = other.Capacity();
+    this->logical_size_ = other.Size();
+    this->array_ = other.Data();
+    return *this;
   }
 
   Reference operator[](SizeType pos) {
-    if (pos + 1 > this->logical_size_) {
-      throw std::out_of_range("index out of range");
-    }
-
-    return this->array_[pos];
+    return this->At(pos);
   }
 
   ConstReference operator[](SizeType pos) const {
-    if (pos + 1 > this->logical_size_) {
-      throw std::out_of_range("index out of range");
-    }
-
-    return this->array_[pos];
+    return this->At(pos);
   }
 
   Reference At(SizeType pos) {
-    if (pos + 1 > this->logical_size_) {
+    if (pos >= this->logical_size_) {
       throw std::out_of_range("index out of range");
     }
 
-    return this->array_[pos];
+    return *(this->array_ + pos);
   }
 
   ConstReference At(SizeType pos) const {
-    if (pos + 1 > this->logical_size_) {
+    if (pos >= this->logical_size_) {
       throw std::out_of_range("index out of range");
     }
 
-    return this->array_[pos];
+    return *(this->array_ + pos);
   }
 
   Reference Front() {
@@ -60,7 +85,7 @@ public:
       throw std::out_of_range("empty vector");
     }
 
-    return this->array_[0];
+    return this->At(0);
   }
 
   ConstReference Front() const {
@@ -68,7 +93,7 @@ public:
       throw std::out_of_range("empty vector");
     }
 
-    return this->array_[0];
+    return this->At(0);
   }
 
   Reference Back() {
@@ -76,7 +101,7 @@ public:
       throw std::out_of_range("empty vector");
     }
 
-    return this->array_[this->logical_size_ - 1];
+    return this->At(this->logical_size_ - 1);
   }
 
   ConstReference Back() const {
@@ -84,7 +109,15 @@ public:
       throw std::out_of_range("empty vector");
     }
 
-    return this->array_[this->logical_size_ - 1];
+    return this->At(this->logical_size_ - 1);
+  }
+
+  ValueType* Data() {
+    return this->array_;
+  }
+
+  const ValueType* Data() const {
+    return this->array_;
   }
 
   [[nodiscard("Reason: Return value indicates if vector is empty")]] bool Empty() const {
@@ -105,40 +138,24 @@ public:
   void PushBack(ConstReference value) {
     if (this->logical_size_ == this->capacity_) {
       if (this->capacity_ == 0) {
-        std::span<ValueType> initial_block{new ValueType[2], 2};
+        // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+        auto initial_block = new ValueType[2];
         this->array_ = initial_block;
         this->capacity_ = 2;
       } else {
         this->capacity_ *= 2;
-        std::span<ValueType> extended_block{new ValueType[this->capacity_], this->capacity_};
+        // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+        auto extended_block = new ValueType[this->capacity_];
         for (SizeType i = 0; i < this->capacity_ / 2; i++) {
-          extended_block[i] = this->array_[i];
+          extended_block[i] = this->At(i);
         }
+        delete[] this->array_;
         this->array_ = extended_block;
       }
     }
-    this->array_[this->logical_size_] = value;
     this->logical_size_++;
+    this->At(this->logical_size_ - 1) = value;
   }
-
-  // void PushBack(ValueType&& value) {
-  //   if (this->logical_size_ == this->capacity_) {
-  //     if (this->capacity_ == 0) {
-  //       std::span<ValueType> initial_block{new ValueType[2], 2};
-  //       this->array_ = initial_block;
-  //       this->capacity_ = 2;
-  //     } else {
-  //       this->capacity_ *= 2;
-  //       std::span<ValueType, this->capacity_> extended_block;
-  //       for (SizeType i = 0; i < this->capacity_ / 2; i++) {
-  //         extended_block[i] = this->array_[i];
-  //       }
-  //       this->array_ = extended_block;
-  //     }
-  //   }
-  //   this->array_[this->logical_size_] = value;
-  //   this->logical_size_++;
-  // }
 
   void PopBack() {
     if (Size() == 0) {
@@ -150,7 +167,7 @@ public:
 private:
   SizeType logical_size_ = 0;
   SizeType capacity_ = 0;
-  std::span<ValueType> array_ = nullptr;
+  ValueType* array_ = nullptr;
 };
 }  // namespace vt
 

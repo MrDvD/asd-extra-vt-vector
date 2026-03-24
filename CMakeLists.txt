@@ -29,9 +29,18 @@ add_executable(
 )
 target_link_libraries(
   vt
-  PRIVATE Microsoft.GSL::GSL
   GTest::gtest_main
 )
 
 include(GoogleTest)
 gtest_discover_tests(vt)
+
+if(CMAKE_BUILD_TYPE MATCHES "Debug")
+  set(
+    CMAKE_C_FLAGS
+    "${CMAKE_C_FLAGS} -Werror -fsanitize=undefined -fsanitize=address"
+  )
+  target_link_options(vt
+    BEFORE PUBLIC -fsanitize=undefined PUBLIC -fsanitize=address
+  )
+endif()
