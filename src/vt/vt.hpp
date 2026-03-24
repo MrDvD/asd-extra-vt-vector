@@ -15,7 +15,9 @@ class Vector {
 
 public:
   Vector(std::initializer_list<ValueType> init)
-      : capacity_(init.size()), logical_size_(init.size()), array_(new ValueType[this->capacity_]) {
+      : capacity_(init.size())
+      , logical_size_(init.size())
+      , array_(new ValueType[this->capacity_], this->capacity_) {
     for (std::size_t i = 0; i < init.size(); i++) {
       this->array_[i] = init.begin()[i];
     }
@@ -103,12 +105,12 @@ public:
   void PushBack(ConstReference value) {
     if (this->logical_size_ == this->capacity_) {
       if (this->capacity_ == 0) {
-        std::span<ValueType, 2> initial_block;
+        std::span<ValueType> initial_block{new ValueType[2], 2};
         this->array_ = initial_block;
         this->capacity_ = 2;
       } else {
         this->capacity_ *= 2;
-        std::span<ValueType, this->capacity_> extended_block;
+        std::span<ValueType> extended_block{new ValueType[this->capacity_], this->capacity_};
         for (SizeType i = 0; i < this->capacity_ / 2; i++) {
           extended_block[i] = this->array_[i];
         }
@@ -122,7 +124,7 @@ public:
   // void PushBack(ValueType&& value) {
   //   if (this->logical_size_ == this->capacity_) {
   //     if (this->capacity_ == 0) {
-  //       std::span<ValueType, 2> initial_block;
+  //       std::span<ValueType> initial_block{new ValueType[2], 2};
   //       this->array_ = initial_block;
   //       this->capacity_ = 2;
   //     } else {
