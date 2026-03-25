@@ -27,7 +27,7 @@ public:
 
   // move constructor
   Vector(Vector&& other) noexcept
-      : array_(other.Data()), capacity_(other.Capacity()), logical_size_(other.Size()) {
+      : array_(std::move(other.Data())), capacity_(other.Capacity()), logical_size_(other.Size()) {
   }
 
   // destructor
@@ -42,6 +42,9 @@ public:
     }
     this->capacity_ = other.Capacity();
     this->logical_size_ = other.Size();
+    delete[] this->array_;
+    auto copy_block = new ValueType[this->capacity_];
+    this->array_ = copy_block;
     for (std::size_t i = 0; i < other.Size(); i++) {
       this->At(i) = other.Data().begin()[i];
     }
@@ -52,7 +55,8 @@ public:
   Vector& operator=(Vector&& other) noexcept {
     this->capacity_ = other.Capacity();
     this->logical_size_ = other.Size();
-    this->array_ = other.Data();
+    delete[] this->array_;
+    this->array_ = std::move(other.Data());
     return *this;
   }
 
@@ -140,6 +144,7 @@ public:
       if (this->capacity_ == 0) {
         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
         auto initial_block = new ValueType[2];
+        delete[] this->array_;
         this->array_ = initial_block;
         this->capacity_ = 2;
       } else {

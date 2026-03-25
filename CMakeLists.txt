@@ -34,17 +34,27 @@ FetchContent_MakeAvailable(benchmark)
 enable_testing()
 
 add_executable(
-  vt_tests
+  vt_module
   src/vt/vt.hpp
   src/tests/module.cc
 )
 target_link_libraries(
-  vt_tests
+  vt_module
+  GTest::gtest_main
+)
+add_executable(
+  vt_comparison
+  src/vt/vt.hpp
+  src/tests/comparison.cc
+)
+target_link_libraries(
+  vt_comparison
   GTest::gtest_main
 )
 
 include(GoogleTest)
-gtest_discover_tests(vt_tests)
+gtest_discover_tests(vt_module)
+gtest_discover_tests(vt_comparison)
 
 add_executable(
   vt_bench
@@ -61,7 +71,10 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug")
     CMAKE_C_FLAGS
     "${CMAKE_C_FLAGS} -Werror -fsanitize=undefined -fsanitize=address"
   )
-  target_link_options(vt_tests
+  target_link_options(vt_module
+    BEFORE PUBLIC -fsanitize=undefined PUBLIC -fsanitize=address
+  )
+  target_link_options(vt_comparison
     BEFORE PUBLIC -fsanitize=undefined PUBLIC -fsanitize=address
   )
 endif()
