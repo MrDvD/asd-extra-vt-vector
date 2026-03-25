@@ -1,4 +1,5 @@
 #include <benchmark/benchmark.h>
+
 #include "../vt/vt.hpp"
 
 static void PushBack_NoReserve(benchmark::State& state) {
@@ -11,6 +12,6 @@ static void PushBack_NoReserve(benchmark::State& state) {
   // size of the input
   state.SetComplexityN(state.range(0));
 }
-BENCHMARK(PushBack_NoReserve)->RangeMultiplier(8)->Range(8, 8<<10)->Complexity();
+BENCHMARK(PushBack_NoReserve)->RangeMultiplier(8)->Range(8, 8 << 10)->Complexity();
 
 BENCHMARK_MAIN();

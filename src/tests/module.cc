@@ -1,6 +1,6 @@
-#include "../vt/vt.hpp"
-
 #include <gtest/gtest.h>
+
+#include "../vt/vt.hpp"
 
 vt::Vector<int> array = {5, 7, -3, 0, 1};
 
