@@ -42,8 +42,9 @@ public:
     }
     this->capacity_ = other.Capacity();
     this->logical_size_ = other.Size();
-    delete[] this->array_;
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
     auto copy_block = new ValueType[this->capacity_];
+    delete[] this->array_;
     this->array_ = copy_block;
     for (std::size_t i = 0; i < other.Size(); i++) {
       this->At(i) = other.Data().begin()[i];
@@ -131,6 +132,21 @@ public:
   [[nodiscard("Reason: Return value shows current size of vector")]] SizeType Size() const {
     return this->logical_size_;
   }
+
+  void Reserve(SizeType new_cap) {
+    if (new_cap <= this->Capacity()) {
+      return;
+    }
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+    auto extended_block = new ValueType[this->capacity_];
+    for (SizeType i = 0; i < this->Size(); i++) {
+      extended_block[i] = this->At(i);
+    }
+    delete[] this->array_;
+    this->capacity_ = new_cap;
+    this->array_ = extended_block;
+  }
+
   [[nodiscard("Reason: Return value shows current capacity of vector")]] SizeType Capacity() const {
     return this->capacity_;
   }
