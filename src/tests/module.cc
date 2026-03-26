@@ -43,3 +43,21 @@ TEST(VtIntVector, BasicModifiers) {
   EXPECT_EQ(array.Back(), item);
   EXPECT_EQ(array.Size(), 9);
 }
+
+TEST(VtIntVector, BasicIterators) {
+  auto it = array.Begin();
+  EXPECT_EQ(*it, 5);
+  EXPECT_EQ(*(it + 2), -3);
+
+  int count = 0;
+  for (auto i = array.Begin(); i != array.End(); i++) {
+    count++;
+  }
+  EXPECT_EQ(count, array.Size());
+
+  auto last = array.End() - 1;
+  EXPECT_EQ(*last, array.Back());
+
+  EXPECT_TRUE(array.Begin() < array.End());
+  EXPECT_EQ(array.End() - array.Begin(), array.Size());
+}

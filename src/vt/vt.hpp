@@ -3,14 +3,132 @@
 
 #include <cstddef>
 #include <initializer_list>
+#include <iterator>
 #include <stdexcept>
+#include <type_traits>
 
 namespace vt {
 template <class ValueType>
+class IteratorImpl {
+public:
+  using DifferenceType = std::ptrdiff_t;
+  using Pointer = ValueType*;
+  using Reference = ValueType&;
+  using ConstReference = const Reference;
+  // below is for iterator_traits
+  // NOLINTBEGIN(readability-identifier-naming)
+  using difference_type = DifferenceType;
+  using value_type = std::remove_const_t<ValueType>;
+  using reference = Reference;
+  using const_reference = ConstReference;
+  using iterator_concept = std::contiguous_iterator_tag;
+  // NOLINTEND(readability-identifier-naming)
+
+  IteratorImpl() = default;
+
+  explicit IteratorImpl(Pointer ptr) : ptr_(ptr) {
+  }
+
+  Reference operator*() const {
+    return *(this->ptr_);
+  }
+
+  IteratorImpl& operator++() {
+    this->ptr_ = std::next(this->ptr_);
+    return *this;
+  }
+
+  IteratorImpl operator++(int) {
+    IteratorImpl temp = *this;
+    ++(*this);
+    return temp;
+  }
+
+  IteratorImpl& operator--() {
+    this->ptr_ = std::prev(this->ptr_);
+    return *this;
+  }
+
+  IteratorImpl operator--(int) {
+    IteratorImpl temp = *this;
+    --(*this);
+    return temp;
+  }
+
+  bool operator<(const IteratorImpl& other) const {
+    return this->ptr_ < other.ptr_;
+  }
+
+  bool operator<=(const IteratorImpl& other) const {
+    return this->ptr_ <= other.ptr_;
+  }
+
+  bool operator>(const IteratorImpl& other) const {
+    return this->ptr_ > other.ptr_;
+  }
+
+  bool operator>=(const IteratorImpl& other) const {
+    return this->ptr_ >= other.ptr_;
+  }
+
+  bool operator==(const IteratorImpl& other) const {
+    return this->ptr_ == other.ptr_;
+  }
+
+  DifferenceType operator-(const IteratorImpl& other) const {
+    return this->ptr_ - other.ptr_;
+  }
+
+  IteratorImpl& operator+=(const DifferenceType diff) {
+    this->ptr_ += diff;
+    return this;
+  }
+
+  IteratorImpl operator+(DifferenceType diff) const {
+    return IteratorImpl(this->ptr_ + diff);
+  }
+
+  IteratorImpl friend operator+(DifferenceType diff, const IteratorImpl& iter) {
+    return iter + diff;
+  }
+
+  IteratorImpl& operator-=(const DifferenceType diff) {
+    this->ptr_ -= diff;
+    return this;
+  }
+
+  IteratorImpl operator-(DifferenceType diff) const {
+    return IteratorImpl(this->ptr_ - diff);
+  }
+
+  IteratorImpl friend operator-(DifferenceType diff, const IteratorImpl& iter) {
+    return iter - diff;
+  }
+
+  Reference operator[](DifferenceType diff) const {
+    return *(this->ptr_ + diff);
+  }
+
+  Pointer operator->() const {
+    return this->ptr_;
+  }
+
+private:
+  Pointer ptr_ = nullptr;
+};
+
+template <class ValueType>
 class Vector {
   using SizeType = std::size_t;
+  using DifferenceType = std::ptrdiff_t;
   using Reference = ValueType&;
+  using Pointer = ValueType*;
   using ConstReference = const ValueType&;
+  using Iterator = IteratorImpl<ValueType>;
+  using ConstIterator = IteratorImpl<const ValueType>;
+
+  static_assert(std::contiguous_iterator<Iterator>);
+  static_assert(std::contiguous_iterator<ConstIterator>);
 
 public:
   Vector(std::initializer_list<ValueType> init)
@@ -123,6 +241,34 @@ public:
 
   const ValueType* Data() const {
     return this->array_;
+  }
+
+  Iterator Begin() {
+    if (Empty()) {
+      return IteratorImpl<ValueType>();
+    }
+    return IteratorImpl<ValueType>(this->array_);
+  }
+
+  ConstIterator Begin() const {
+    if (Empty()) {
+      return IteratorImpl<ValueType>();
+    }
+    return IteratorImpl<ValueType>(this->array_);
+  }
+
+  Iterator End() {
+    if (Empty()) {
+      return IteratorImpl<ValueType>();
+    }
+    return IteratorImpl<ValueType>(this->array_ + this->logical_size_);
+  }
+
+  ConstIterator End() const {
+    if (Empty()) {
+      return IteratorImpl<ValueType>();
+    }
+    return IteratorImpl<ValueType>(this->array_ + this->logical_size_);
   }
 
   [[nodiscard("Reason: Return value indicates if vector is empty")]] bool Empty() const {
