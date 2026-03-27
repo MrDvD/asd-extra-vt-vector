@@ -126,6 +126,8 @@ class Vector {
   using ConstReference = const ValueType&;
   using Iterator = IteratorImpl<ValueType>;
   using ConstIterator = IteratorImpl<const ValueType>;
+  using ReverseIterator = std::reverse_iterator<Iterator>;
+  using ConstReverseIterator = std::reverse_iterator<ConstIterator>;
 
   static_assert(std::contiguous_iterator<Iterator>);
   static_assert(std::contiguous_iterator<ConstIterator>);
@@ -252,9 +254,16 @@ public:
 
   ConstIterator Begin() const {
     if (Empty()) {
-      return IteratorImpl<ValueType>();
+      return IteratorImpl<const ValueType>();
     }
-    return IteratorImpl<ValueType>(this->array_);
+    return IteratorImpl<const ValueType>(this->array_);
+  }
+
+  ConstIterator CBegin() const noexcept {
+    if (Empty()) {
+      return IteratorImpl<const ValueType>();
+    }
+    return IteratorImpl<const ValueType>(this->array_);
   }
 
   Iterator End() {
@@ -266,9 +275,58 @@ public:
 
   ConstIterator End() const {
     if (Empty()) {
-      return IteratorImpl<ValueType>();
+      return IteratorImpl<const ValueType>();
     }
-    return IteratorImpl<ValueType>(this->array_ + this->logical_size_);
+    return IteratorImpl<const ValueType>(this->array_ + this->logical_size_);
+  }
+
+  ConstIterator CEnd() const noexcept {
+    if (Empty()) {
+      return IteratorImpl<const ValueType>();
+    }
+    return IteratorImpl<const ValueType>(this->array_ + this->logical_size_);
+  }
+
+  ReverseIterator RBegin() {
+    if (Empty()) {
+      return std::reverse_iterator(IteratorImpl<ValueType>());
+    }
+    return std::reverse_iterator(IteratorImpl<ValueType>(this->array_ + this->logical_size_));
+  }
+
+  ConstReverseIterator RBegin() const {
+    if (Empty()) {
+      return std::reverse_iterator(IteratorImpl<const ValueType>());
+    }
+    return std::reverse_iterator(IteratorImpl<const ValueType>(this->array_ + this->logical_size_));
+  }
+
+  ConstReverseIterator CRBegin() const noexcept {
+    if (Empty()) {
+      return std::reverse_iterator(IteratorImpl<const ValueType>());
+    }
+    return std::reverse_iterator(IteratorImpl<const ValueType>(this->array_ + this->logical_size_));
+  }
+
+  ReverseIterator REnd() {
+    if (Empty()) {
+      return std::reverse_iterator(IteratorImpl<ValueType>());
+    }
+    return std::reverse_iterator(IteratorImpl<ValueType>(this->array_));
+  }
+
+  ConstReverseIterator REnd() const {
+    if (Empty()) {
+      return std::reverse_iterator(IteratorImpl<const ValueType>());
+    }
+    return std::reverse_iterator(IteratorImpl<const ValueType>(this->array_));
+  }
+
+  ConstReverseIterator CREnd() const noexcept {
+    if (Empty()) {
+      return std::reverse_iterator(IteratorImpl<const ValueType>());
+    }
+    return std::reverse_iterator(IteratorImpl<const ValueType>(this->array_ - 1));
   }
 
   [[nodiscard("Reason: Return value indicates if vector is empty")]] bool Empty() const {

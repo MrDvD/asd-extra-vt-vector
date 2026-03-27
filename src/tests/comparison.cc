@@ -29,34 +29,59 @@ TEST(VtComparison, MassOperations) {
       }
       case 2: {
         EXPECT_EQ(std_array.size(), vt_array.Size());
-        if (vt_array.Size() > 0) {
-          int std_front = std_array.front();
-          int vt_front = vt_array.Front();
-          EXPECT_EQ(std_front, vt_front);
-
-          int vt_back = vt_array.Back();
-          int std_back = std_array.back();
-          EXPECT_EQ(std_back, vt_back);
+        if (vt_array.Size() == 0) {
+          continue;
         }
+        int std_front = std_array.front();
+        int vt_front = vt_array.Front();
+        EXPECT_EQ(std_front, vt_front);
+
+        int vt_back = vt_array.Back();
+        int std_back = std_array.back();
+        EXPECT_EQ(std_back, vt_back);
         break;
       }
       case 3:
         EXPECT_EQ(std_array.size(), vt_array.Size());
-        if (vt_array.Size() > 0) {
-          std_array.pop_back();
-          vt_array.PopBack();
-          EXPECT_EQ(std_array.size(), vt_array.Size());
+        if (vt_array.Size() == 0) {
+          continue;
         }
+        std_array.pop_back();
+        vt_array.PopBack();
+        EXPECT_EQ(std_array.size(), vt_array.Size());
         break;
       case 4: {
         EXPECT_EQ(std_array.size(), vt_array.Size());
-        if (vt_array.Size() > 0) {
-          float rawIdx = uniform_arg(e2);
-          int idx = (int)(rawIdx * (vt_array.Size() - 1));
-          int std_item = std_array.at(idx);
-          int vt_item = vt_array.At(idx);
-          EXPECT_EQ(std_item, vt_item);
+        if (vt_array.Size() == 0) {
+          continue;
         }
+        float rawIdx = uniform_arg(e2);
+        int idx = (int)(rawIdx * (vt_array.Size() - 1));
+        int std_item = std_array.at(idx);
+        int vt_item = vt_array.At(idx);
+        EXPECT_EQ(std_item, vt_item);
+        break;
+      }
+      case 5: {
+        EXPECT_EQ(std_array.size(), vt_array.Size());
+        if (vt_array.Size() == 0) {
+          continue;
+        }
+        auto std_it = std_array.begin();
+        auto vt_it = vt_array.Begin();
+        auto std_rit = std_array.rbegin();
+        auto vt_rit = vt_array.RBegin();
+
+        EXPECT_EQ(*std_it, *vt_it);
+        EXPECT_EQ(*std_rit, *vt_rit);
+
+        float rawOffset = uniform_arg(e2);
+        int offset = (int)(rawOffset * (vt_array.Size() - 1));
+
+        EXPECT_EQ(*(std_it + offset), *(vt_it + offset));
+        EXPECT_EQ(*(std_rit + offset), *(vt_rit + offset));
+
+        EXPECT_EQ(std_array.end() - (std_it + offset), vt_array.End() - (vt_it + offset));
         break;
       }
       default:

@@ -61,3 +61,36 @@ TEST(VtIntVector, BasicIterators) {
   EXPECT_TRUE(array.Begin() < array.End());
   EXPECT_EQ(array.End() - array.Begin(), array.Size());
 }
+
+TEST(VtIntVector, ReverseIterators) {
+  auto rit = array.RBegin();
+  EXPECT_EQ(*rit, array.Back());
+  EXPECT_EQ(*(rit + 1), 0);
+
+  int count = 0;
+  for (auto it = array.RBegin(); it != array.REnd(); it++) {
+    count++;
+  }
+  EXPECT_EQ(count, array.Size());
+
+  EXPECT_EQ(*(array.REnd() - 1), array.Front());
+  EXPECT_TRUE(array.RBegin() < array.REnd());
+}
+
+TEST(VtIntVector, ConstIterators) {
+  const vt::Vector<int>& const_array = array;
+
+  auto cit = const_array.CBegin();
+  EXPECT_EQ(*cit, 5);
+  EXPECT_EQ(*(cit + 2), -3);
+
+  int count = 0;
+  for (auto i = const_array.CBegin(); i != const_array.CEnd(); i++) {
+    count++;
+  }
+  EXPECT_EQ(count, const_array.Size());
+
+  auto crit = const_array.CRBegin();
+  EXPECT_EQ(*crit, const_array.Back());
+  EXPECT_EQ(*(crit + (const_array.Size() - 1)), const_array.Front());
+}
