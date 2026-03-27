@@ -14,7 +14,7 @@ public:
   using DifferenceType = std::ptrdiff_t;
   using Pointer = ValueType*;
   using Reference = ValueType&;
-  using ConstReference = const Reference;
+  using ConstReference = const ValueType&;
   // below is for iterator_traits
   // NOLINTBEGIN(readability-identifier-naming)
   using difference_type = DifferenceType;
@@ -141,22 +141,22 @@ public:
   }
 
   // copy constructor
-  Vector(Vector& other) {
+  constexpr Vector(Vector& other) {
     Vector(other.Data());
   }
 
   // move constructor
-  Vector(Vector&& other) noexcept
+  constexpr Vector(Vector&& other) noexcept
       : array_(std::move(other.Data())), capacity_(other.Capacity()), logical_size_(other.Size()) {
   }
 
   // destructor
-  ~Vector() {
+  constexpr ~Vector() {
     delete[] this->array_;
   }
 
   // copy assignment
-  Vector& operator=(const Vector& other) {
+  constexpr Vector& operator=(const Vector& other) {
     if (this == &other) {
       return *this;
     }
@@ -173,7 +173,7 @@ public:
   }
 
   // move assignment
-  Vector& operator=(Vector&& other) noexcept {
+  constexpr Vector& operator=(Vector&& other) noexcept {
     this->capacity_ = other.Capacity();
     this->logical_size_ = other.Size();
     delete[] this->array_;
@@ -181,15 +181,7 @@ public:
     return *this;
   }
 
-  Reference operator[](SizeType pos) {
-    return this->At(pos);
-  }
-
-  ConstReference operator[](SizeType pos) const {
-    return this->At(pos);
-  }
-
-  Reference At(SizeType pos) {
+  constexpr Reference At(SizeType pos) {
     if (pos >= this->logical_size_) {
       throw std::out_of_range("index out of range");
     }
@@ -205,7 +197,15 @@ public:
     return *(this->array_ + pos);
   }
 
-  Reference Front() {
+  constexpr Reference operator[](SizeType pos) {
+    return this->At(pos);
+  }
+
+  constexpr ConstReference operator[](SizeType pos) const {
+    return this->At(pos);
+  }
+
+  constexpr Reference Front() {
     if (Empty()) {
       throw std::out_of_range("empty vector");
     }
@@ -213,7 +213,7 @@ public:
     return this->At(0);
   }
 
-  ConstReference Front() const {
+  constexpr ConstReference Front() const {
     if (Empty()) {
       throw std::out_of_range("empty vector");
     }
@@ -221,7 +221,7 @@ public:
     return this->At(0);
   }
 
-  Reference Back() {
+  constexpr Reference Back() {
     if (Empty()) {
       throw std::out_of_range("empty vector");
     }
@@ -229,7 +229,7 @@ public:
     return this->At(this->logical_size_ - 1);
   }
 
-  ConstReference Back() const {
+  constexpr ConstReference Back() const {
     if (Empty()) {
       throw std::out_of_range("empty vector");
     }
@@ -237,107 +237,81 @@ public:
     return this->At(this->logical_size_ - 1);
   }
 
-  ValueType* Data() {
+  constexpr ValueType* Data() noexcept {
     return this->array_;
   }
 
-  const ValueType* Data() const {
+  constexpr const ValueType* Data() const noexcept {
     return this->array_;
   }
 
-  Iterator Begin() {
+  constexpr Iterator Begin() noexcept {
     if (Empty()) {
       return IteratorImpl<ValueType>();
     }
     return IteratorImpl<ValueType>(this->array_);
   }
 
-  ConstIterator Begin() const {
+  constexpr ConstIterator Begin() const noexcept {
     if (Empty()) {
       return IteratorImpl<const ValueType>();
     }
     return IteratorImpl<const ValueType>(this->array_);
   }
 
-  ConstIterator CBegin() const noexcept {
-    if (Empty()) {
-      return IteratorImpl<const ValueType>();
-    }
-    return IteratorImpl<const ValueType>(this->array_);
-  }
-
-  Iterator End() {
+  constexpr Iterator End() noexcept {
     if (Empty()) {
       return IteratorImpl<ValueType>();
     }
     return IteratorImpl<ValueType>(this->array_ + this->logical_size_);
   }
 
-  ConstIterator End() const {
+  constexpr ConstIterator End() const noexcept {
     if (Empty()) {
       return IteratorImpl<const ValueType>();
     }
     return IteratorImpl<const ValueType>(this->array_ + this->logical_size_);
   }
 
-  ConstIterator CEnd() const noexcept {
-    if (Empty()) {
-      return IteratorImpl<const ValueType>();
-    }
-    return IteratorImpl<const ValueType>(this->array_ + this->logical_size_);
-  }
-
-  ReverseIterator RBegin() {
+  constexpr ReverseIterator RBegin() noexcept {
     if (Empty()) {
       return std::reverse_iterator(IteratorImpl<ValueType>());
     }
     return std::reverse_iterator(IteratorImpl<ValueType>(this->array_ + this->logical_size_));
   }
 
-  ConstReverseIterator RBegin() const {
+  constexpr ConstReverseIterator RBegin() const noexcept {
     if (Empty()) {
       return std::reverse_iterator(IteratorImpl<const ValueType>());
     }
     return std::reverse_iterator(IteratorImpl<const ValueType>(this->array_ + this->logical_size_));
   }
 
-  ConstReverseIterator CRBegin() const noexcept {
-    if (Empty()) {
-      return std::reverse_iterator(IteratorImpl<const ValueType>());
-    }
-    return std::reverse_iterator(IteratorImpl<const ValueType>(this->array_ + this->logical_size_));
-  }
-
-  ReverseIterator REnd() {
+  constexpr ReverseIterator REnd() noexcept {
     if (Empty()) {
       return std::reverse_iterator(IteratorImpl<ValueType>());
     }
     return std::reverse_iterator(IteratorImpl<ValueType>(this->array_));
   }
 
-  ConstReverseIterator REnd() const {
+  constexpr ConstReverseIterator REnd() const noexcept {
     if (Empty()) {
       return std::reverse_iterator(IteratorImpl<const ValueType>());
     }
     return std::reverse_iterator(IteratorImpl<const ValueType>(this->array_));
   }
 
-  ConstReverseIterator CREnd() const noexcept {
-    if (Empty()) {
-      return std::reverse_iterator(IteratorImpl<const ValueType>());
-    }
-    return std::reverse_iterator(IteratorImpl<const ValueType>(this->array_ - 1));
-  }
-
-  [[nodiscard("Reason: Return value indicates if vector is empty")]] bool Empty() const {
+  [[nodiscard("Reason: Return value indicates if vector is empty")]] constexpr bool Empty(
+  ) const noexcept {
     return this->logical_size_ == 0;
   }
 
-  [[nodiscard("Reason: Return value shows current size of vector")]] SizeType Size() const {
+  [[nodiscard("Reason: Return value shows current size of vector")]] constexpr SizeType Size(
+  ) const noexcept {
     return this->logical_size_;
   }
 
-  void Reserve(SizeType new_cap) {
+  constexpr void Reserve(SizeType new_cap) {
     if (new_cap <= this->Capacity()) {
       return;
     }
@@ -355,11 +329,15 @@ public:
     return this->capacity_;
   }
 
-  void Clear() {
+  constexpr void Clear() noexcept {
     this->logical_size_ = 0;
   }
 
-  void PushBack(ConstReference value) {
+  // constexpr Iterator Insert(ConstIterator pos, ConstReference value) {
+
+  // }
+
+  constexpr void PushBack(ConstReference value) {
     if (this->logical_size_ == this->capacity_) {
       if (this->capacity_ == 0) {
         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
@@ -382,7 +360,7 @@ public:
     this->At(this->logical_size_ - 1) = value;
   }
 
-  void PopBack() {
+  constexpr void PopBack() {
     if (Size() == 0) {
       return;
     }
