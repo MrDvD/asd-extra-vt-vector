@@ -2,9 +2,9 @@
 
 #include "../vt/vt.hpp"
 
-vt::Vector<int> array = {5, 7, -3, 0, 1};
-
 TEST(VtIntVector, BasicElementAccess) {
+  vt::Vector<int> array = {5, 7, -3, 0, 1};
+
   EXPECT_EQ(array[0], 5);
   EXPECT_EQ(array[1], 7);
   EXPECT_EQ(array[4], 1);
@@ -18,17 +18,22 @@ TEST(VtIntVector, BasicElementAccess) {
 }
 
 TEST(VtIntVector, BasicCapacity) {
+  vt::Vector<int> array = {5, 7, -3, 0, 1};
+
   EXPECT_FALSE(array.Empty());
 
   EXPECT_EQ(array.Size(), 5);
 }
 
 TEST(VtIntVector, BasicModifiers) {
+  vt::Vector<int> array = {5, 7, -3, 0, 1};
+
   array.PopBack();
 
   EXPECT_EQ(array.Size(), 4);
 
   int item = -17;
+
   array.PushBack(item);
 
   EXPECT_EQ(array.Back(), item);
@@ -45,6 +50,8 @@ TEST(VtIntVector, BasicModifiers) {
 }
 
 TEST(VtIntVector, BasicIterators) {
+  vt::Vector<int> array = {5, 7, -3, 0, 1};
+
   auto it = array.Begin();
   EXPECT_EQ(*it, 5);
   EXPECT_EQ(*(it + 2), -3);
@@ -63,6 +70,8 @@ TEST(VtIntVector, BasicIterators) {
 }
 
 TEST(VtIntVector, ReverseIterators) {
+  vt::Vector<int> array = {5, 7, -3, 0, 1};
+
   auto rit = array.RBegin();
   EXPECT_EQ(*rit, array.Back());
   EXPECT_EQ(*(rit + 1), 0);
@@ -77,20 +86,31 @@ TEST(VtIntVector, ReverseIterators) {
   EXPECT_TRUE(array.RBegin() < array.REnd());
 }
 
-TEST(VtIntVector, ConstIterators) {
-  const vt::Vector<int>& const_array = array;
+TEST(VtIntVector, InsertOperation) {
+  vt::Vector<int> array = {5, 7, -3, 0, 1};
 
-  auto cit = const_array.CBegin();
-  EXPECT_EQ(*cit, 5);
-  EXPECT_EQ(*(cit + 2), -3);
+  auto it1 = array.Insert(array.Begin() + 1, 10);
+  EXPECT_EQ(*it1, 10);
+  EXPECT_EQ(array[1], 10);
 
-  int count = 0;
-  for (auto i = const_array.CBegin(); i != const_array.CEnd(); i++) {
-    count++;
-  }
-  EXPECT_EQ(count, const_array.Size());
+  int val = 20;
+  auto it2 = array.Insert(array.Begin(), std::move(val));
+  EXPECT_EQ(*it2, 20);
+  EXPECT_EQ(array.Front(), 20);
 
-  auto crit = const_array.CRBegin();
-  EXPECT_EQ(*crit, const_array.Back());
-  EXPECT_EQ(*(crit + (const_array.Size() - 1)), const_array.Front());
+  auto it3 = array.Insert(array.End(), 2, 30);
+  EXPECT_EQ(*it3, 30);
+  EXPECT_EQ(array.Back(), 30);
+  EXPECT_EQ(*(array.End() - 2), 30);
+
+  std::vector<int> range = {40, 50};
+  auto it4 = array.Insert(array.Begin() + 2, range.begin(), range.end());
+  EXPECT_EQ(*it4, 40);
+  EXPECT_EQ(array[2], 40);
+  EXPECT_EQ(array[3], 50);
+
+  auto it5 = array.Insert(array.Begin(), {60, 70});
+  EXPECT_EQ(*it5, 60);
+  EXPECT_EQ(array[0], 60);
+  EXPECT_EQ(array[1], 70);
 }

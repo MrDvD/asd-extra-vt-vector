@@ -29,6 +29,14 @@ public:
   explicit IteratorImpl(Pointer ptr) : ptr_(ptr) {
   }
 
+  // converting constructor
+  template <typename U>
+  // NOLINTNEXTLINE(google-explicit-constructor,hicpp-explicit-conversions)
+  IteratorImpl(const IteratorImpl<U>& other)
+    requires std::is_convertible_v<U*, ValueType*>
+      : ptr_(other.operator->()) {
+  }
+
   Reference operator*() const {
     return *(this->ptr_);
   }
@@ -147,7 +155,10 @@ public:
 
   // move constructor
   constexpr Vector(Vector&& other) noexcept
-      : array_(std::move(other.Data())), capacity_(other.Capacity()), logical_size_(other.Size()) {
+      : array_(other.Data()), capacity_(other.Capacity()), logical_size_(other.Size()) {
+    other.array_ = nullptr;
+    other.capacity_ = 0;
+    other.logical_size_ = 0;
   }
 
   // destructor
@@ -174,10 +185,17 @@ public:
 
   // move assignment
   constexpr Vector& operator=(Vector&& other) noexcept {
+    if (this == &other) {
+      return *this;
+    }
     this->capacity_ = other.Capacity();
     this->logical_size_ = other.Size();
     delete[] this->array_;
-    this->array_ = std::move(other.Data());
+    this->array_ = other.Data();
+
+    other.logical_size_ = 0;
+    other.capacity_ = 0;
+    other.array_ = nullptr;
     return *this;
   }
 
@@ -186,15 +204,15 @@ public:
       throw std::out_of_range("index out of range");
     }
 
-    return *(this->array_ + pos);
+    return this->AtUnsafe(pos);
   }
 
-  ConstReference At(SizeType pos) const {
+  constexpr ConstReference At(SizeType pos) const {
     if (pos >= this->logical_size_) {
       throw std::out_of_range("index out of range");
     }
 
-    return *(this->array_ + pos);
+    return this->AtUnsafe(pos);
   }
 
   constexpr Reference operator[](SizeType pos) {
@@ -333,31 +351,125 @@ public:
     this->logical_size_ = 0;
   }
 
-  // constexpr Iterator Insert(ConstIterator pos, ConstReference value) {
+  // copy insert
+  constexpr Iterator Insert(ConstIterator pos_iter, ConstReference value) {
+    ValueType copy = value;
+    return Insert(pos_iter, std::move(copy));
+  }
 
-  // }
+  // move insert
+  constexpr Iterator Insert(ConstIterator pos_iter, ValueType&& value) {
+    std::ptrdiff_t raw_pos = pos_iter - Begin();
+    if (raw_pos > Size() + 1 || raw_pos < 0) {
+      throw std::out_of_range("insertion pos is invalid");
+    }
+    SizeType pos = raw_pos;
+    if (Size() == Capacity()) {
+      this->capacity_ = Capacity() == 0 ? 2 : Capacity() * 2;
+      // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+      auto extended_block = new ValueType[Capacity()];
+      for (SizeType i = 0; i < pos; i++) {
+        extended_block[i] = this->At(i);
+      }
+      extended_block[pos] = std::move(value);
+      for (SizeType i = this->Size(); i > pos; i--) {
+        extended_block[i] = this->At(i - 1);
+      }
+      delete[] this->array_;
+      this->array_ = extended_block;
+      this->logical_size_++;
+      return IteratorImpl<ValueType>(this->array_ + pos);
+    }
+    for (SizeType i = this->Size(); i > pos; i--) {
+      this->AtUnsafe(i) = this->At(i - 1);
+    }
+    this->AtUnsafe(pos) = std::move(value);
+    this->logical_size_++;
+    return IteratorImpl<ValueType>(this->array_ + pos);
+  }
+
+  constexpr Iterator Insert(ConstIterator pos_iter, SizeType count, ConstReference value) {
+    std::ptrdiff_t raw_pos = pos_iter - Begin();
+    if (raw_pos > Size() + 1 || raw_pos < 0) {
+      throw std::out_of_range("insertion pos is invalid");
+    }
+    SizeType pos = raw_pos;
+    if (count < 0) {
+      throw std::out_of_range("insertion count is negative");
+    }
+    if (Size() + count > Capacity()) {
+      this->capacity_ = Capacity() + count;
+      // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+      auto extended_block = new ValueType[Capacity()];
+      for (SizeType i = 0; i < pos; i++) {
+        extended_block[i] = this->At(i);
+      }
+      for (SizeType i = 0; i < count; i++) {
+        extended_block[pos + i] = value;
+      }
+      for (SizeType i = this->Size(); i > pos; i--) {
+        extended_block[i + count - 1] = this->At(i - 1);
+      }
+      delete[] this->array_;
+      this->array_ = extended_block;
+      this->logical_size_ += count;
+      return IteratorImpl<ValueType>(this->array_ + pos);
+    }
+    for (SizeType i = this->Size(); i > pos; i--) {
+      this->AtUnsafe(i + count - 1) = this->At(i - 1);
+    }
+    for (SizeType i = 0; i < count; i++) {
+      this->AtUnsafe(pos + i) = value;
+    }
+    this->logical_size_ += count;
+    return IteratorImpl<ValueType>(this->array_ + pos);
+  }
+
+  template <std::input_iterator InputIt>
+  constexpr Iterator Insert(ConstIterator pos_iter, InputIt first, InputIt last) {
+    std::ptrdiff_t raw_pos = pos_iter - Begin();
+    if (raw_pos > Size() + 1 || raw_pos < 0) {
+      throw std::out_of_range("insertion pos is invalid");
+    }
+    SizeType pos = raw_pos;
+    std::ptrdiff_t count = last - first;
+    if (count < 0) {
+      throw std::out_of_range("given iterators are reversed");
+    }
+    if (Size() + count > Capacity()) {
+      this->capacity_ = Capacity() + count;
+      // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+      auto extended_block = new ValueType[Capacity()];
+      for (SizeType i = 0; i < pos; i++) {
+        extended_block[i] = this->At(i);
+      }
+      for (auto i = first; i != last; i++) {
+        extended_block[pos + (i - first)] = *i;
+      }
+      for (SizeType i = this->Size(); i > pos; i--) {
+        extended_block[i + count - 1] = this->At(i - 1);
+      }
+      delete[] this->array_;
+      this->array_ = extended_block;
+      this->logical_size_ += count;
+      return IteratorImpl<ValueType>(this->array_ + pos);
+    }
+    for (SizeType i = this->Size(); i > pos; i--) {
+      this->AtUnsafe(i + count - 1) = this->At(i - 1);
+    }
+    for (auto i = first; i != last; i++) {
+      this->AtUnsafe(pos + (i - first)) = *i;
+    }
+    this->logical_size_ += count;
+    return IteratorImpl<ValueType>(this->array_ + pos);
+  }
+
+  constexpr Iterator Insert(ConstIterator pos_iter, std::initializer_list<ValueType> ilist) {
+    return Insert(pos_iter, ilist.begin(), ilist.end());
+  }
 
   constexpr void PushBack(ConstReference value) {
-    if (this->logical_size_ == this->capacity_) {
-      if (this->capacity_ == 0) {
-        // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-        auto initial_block = new ValueType[2];
-        delete[] this->array_;
-        this->array_ = initial_block;
-        this->capacity_ = 2;
-      } else {
-        this->capacity_ *= 2;
-        // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-        auto extended_block = new ValueType[this->capacity_];
-        for (SizeType i = 0; i < this->capacity_ / 2; i++) {
-          extended_block[i] = this->At(i);
-        }
-        delete[] this->array_;
-        this->array_ = extended_block;
-      }
-    }
-    this->logical_size_++;
-    this->At(this->logical_size_ - 1) = value;
+    this->Insert(this->End(), value);
   }
 
   constexpr void PopBack() {
@@ -371,6 +483,14 @@ private:
   SizeType logical_size_ = 0;
   SizeType capacity_ = 0;
   ValueType* array_ = nullptr;
+
+  constexpr Reference AtUnsafe(SizeType pos) {
+    return *(this->array_ + pos);
+  }
+
+  constexpr ConstReference AtUnsafe(SizeType pos) const {
+    return *(this->array_ + pos);
+  }
 };
 }  // namespace vt
 

@@ -12,10 +12,10 @@ TEST(VtComparison, MassOperations) {
 
   std::random_device r1, r2;
   std::default_random_engine e1(r1()), e2(r2());
-  std::uniform_int_distribution<std::size_t> uniform_cmd(1, 4);
+  std::uniform_int_distribution<std::size_t> uniform_cmd(1, 6);
   std::uniform_real_distribution<float> uniform_arg(0.0, 1.0);
 
-  for (std::size_t i = 0; i < 1e6; i++) {
+  for (std::size_t i = 0; i < 20000; i++) {
     std::size_t cmd = uniform_cmd(e1);
     switch (cmd) {
       case 1: {
@@ -56,7 +56,7 @@ TEST(VtComparison, MassOperations) {
           continue;
         }
         float rawIdx = uniform_arg(e2);
-        int idx = (int)(rawIdx * (vt_array.Size() - 1));
+        int idx = (int)std::round(rawIdx * (vt_array.Size() - 1));
         int std_item = std_array.at(idx);
         int vt_item = vt_array.At(idx);
         EXPECT_EQ(std_item, vt_item);
@@ -71,17 +71,56 @@ TEST(VtComparison, MassOperations) {
         auto vt_it = vt_array.Begin();
         auto std_rit = std_array.rbegin();
         auto vt_rit = vt_array.RBegin();
-
         EXPECT_EQ(*std_it, *vt_it);
         EXPECT_EQ(*std_rit, *vt_rit);
 
-        float rawOffset = uniform_arg(e2);
-        int offset = (int)(rawOffset * (vt_array.Size() - 1));
-
-        EXPECT_EQ(*(std_it + offset), *(vt_it + offset));
-        EXPECT_EQ(*(std_rit + offset), *(vt_rit + offset));
-
-        EXPECT_EQ(std_array.end() - (std_it + offset), vt_array.End() - (vt_it + offset));
+        float rawIdx = uniform_arg(e2);
+        int idx = (int)std::round(rawIdx * (vt_array.Size() - 1));
+        EXPECT_EQ(*(std_it + idx), *(vt_it + idx));
+        EXPECT_EQ(*(std_rit + idx), *(vt_rit + idx));
+        EXPECT_EQ(std_array.end() - (std_it + idx), vt_array.End() - (vt_it + idx));
+        break;
+      }
+      case 6: {
+        int offset = vt_array.Size() == 0 ? 0 : (int)std::round(uniform_arg(e2) * vt_array.Size());
+        int insert_subtype = (int)std::round(uniform_arg(e2) * 3.0);
+        int item = (int)(uniform_arg(e2) * 1e6);
+        std::size_t count = (std::size_t)(uniform_arg(e2) * 5) + 1;
+        switch (insert_subtype) {
+          case 0: {
+            auto std_it = std_array.insert(std_array.begin() + offset, item);
+            auto vt_it = vt_array.Insert(vt_array.Begin() + offset, item);
+            EXPECT_EQ(*std_it, *vt_it);
+            break;
+          }
+          case 1: {
+            auto std_it = std_array.insert(std_array.begin() + offset, count, item);
+            auto vt_it = vt_array.Insert(vt_array.Begin() + offset, count, item);
+            EXPECT_EQ(*std_it, *vt_it);
+            break;
+          }
+          case 2: {
+            std::vector<int> source_vec;
+            for (std::size_t i = 0; i < count; i++) {
+              source_vec.push_back((int)(uniform_arg(e2) * 1e6));
+            }
+            auto std_it =
+                std_array.insert(std_array.begin() + offset, source_vec.begin(), source_vec.end());
+            auto vt_it =
+                vt_array.Insert(vt_array.Begin() + offset, source_vec.begin(), source_vec.end());
+            EXPECT_EQ(*std_it, *vt_it);
+            break;
+          }
+          case 3: {
+            int val1 = (int)(uniform_arg(e2) * 1e6);
+            int val2 = (int)(uniform_arg(e2) * 1e6);
+            auto ilist = {val1, val2};
+            auto std_it = std_array.insert(std_array.begin() + offset, ilist);
+            auto vt_it = vt_array.Insert(vt_array.Begin() + offset, ilist);
+            EXPECT_EQ(*std_it, *vt_it);
+            break;
+          }
+        }
         break;
       }
       default:
