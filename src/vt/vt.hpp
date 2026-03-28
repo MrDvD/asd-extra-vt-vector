@@ -264,58 +264,34 @@ public:
   }
 
   constexpr Iterator Begin() noexcept {
-    if (Empty()) {
-      return IteratorImpl<ValueType>();
-    }
     return IteratorImpl<ValueType>(this->array_);
   }
 
   constexpr ConstIterator Begin() const noexcept {
-    if (Empty()) {
-      return IteratorImpl<const ValueType>();
-    }
     return IteratorImpl<const ValueType>(this->array_);
   }
 
   constexpr Iterator End() noexcept {
-    if (Empty()) {
-      return IteratorImpl<ValueType>();
-    }
     return IteratorImpl<ValueType>(this->array_ + this->logical_size_);
   }
 
   constexpr ConstIterator End() const noexcept {
-    if (Empty()) {
-      return IteratorImpl<const ValueType>();
-    }
     return IteratorImpl<const ValueType>(this->array_ + this->logical_size_);
   }
 
   constexpr ReverseIterator RBegin() noexcept {
-    if (Empty()) {
-      return std::reverse_iterator(IteratorImpl<ValueType>());
-    }
     return std::reverse_iterator(IteratorImpl<ValueType>(this->array_ + this->logical_size_));
   }
 
   constexpr ConstReverseIterator RBegin() const noexcept {
-    if (Empty()) {
-      return std::reverse_iterator(IteratorImpl<const ValueType>());
-    }
     return std::reverse_iterator(IteratorImpl<const ValueType>(this->array_ + this->logical_size_));
   }
 
   constexpr ReverseIterator REnd() noexcept {
-    if (Empty()) {
-      return std::reverse_iterator(IteratorImpl<ValueType>());
-    }
     return std::reverse_iterator(IteratorImpl<ValueType>(this->array_));
   }
 
   constexpr ConstReverseIterator REnd() const noexcept {
-    if (Empty()) {
-      return std::reverse_iterator(IteratorImpl<const ValueType>());
-    }
     return std::reverse_iterator(IteratorImpl<const ValueType>(this->array_));
   }
 
@@ -468,6 +444,30 @@ public:
     return Insert(pos_iter, ilist.begin(), ilist.end());
   }
 
+  constexpr Iterator Erase(ConstIterator pos) {
+    const std::ptrdiff_t idx = pos - Begin();
+    if (idx >= Size() || idx < 0) {
+      throw std::out_of_range("pos iterator is invalid");
+    }
+    for (SizeType i = idx + 1; i < Size(); i++) {
+      this->At(i - 1) = this->At(i);
+    }
+    this->logical_size_--;
+    return Begin() + idx;
+  }
+
+  constexpr Iterator Erase(ConstIterator first, ConstIterator last) {
+    if (first < Begin() || last > End() || first > last) {
+      throw std::out_of_range("given iterators are invalid");
+    }
+    const std::ptrdiff_t offset = last - first;
+    for (SizeType i = first - Begin(); i + offset < Size(); i++) {
+      this->At(i) = this->At(i + offset);
+    }
+    this->logical_size_ -= offset;
+    return Begin() + (first - Begin());
+  }
+
   constexpr void PushBack(ConstReference value) {
     this->Insert(this->End(), value);
   }
@@ -492,6 +492,19 @@ private:
     return *(this->array_ + pos);
   }
 };
+
+template <class ValueType>
+constexpr bool operator==(const Vector<ValueType>& lhs, const Vector<ValueType>& rhs) {
+  if (lhs.Size() != rhs.Size()) {
+    return false;
+  }
+  for (auto lit = lhs.Begin(), rit = rhs.Begin(); lit != lhs.End(); lit++, rit++) {
+    if (*lit != *rit) {
+      return false;
+    }
+  }
+  return true;
+}
 }  // namespace vt
 
 #endif

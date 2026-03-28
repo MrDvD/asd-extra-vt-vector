@@ -114,3 +114,25 @@ TEST(VtIntVector, InsertOperation) {
   EXPECT_EQ(array[0], 60);
   EXPECT_EQ(array[1], 70);
 }
+
+TEST(VtIntVector, EraseOperation) {
+  vt::Vector<int> c{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+
+  c.Erase(c.Begin());
+  EXPECT_EQ(c, (vt::Vector<int>{1, 2, 3, 4, 5, 6, 7, 8, 9}));
+
+  c.Erase(c.Begin() + 2, c.Begin() + 5);
+  EXPECT_EQ(c, (vt::Vector<int>{1, 2, 6, 7, 8, 9}));
+
+  c.Erase(c.End() - 1);
+  EXPECT_EQ(c, (vt::Vector<int>{1, 2, 6, 7, 8}));
+
+  for (auto it = c.Begin(); it != c.End();) {
+    if (*it % 2 == 0) {
+      it = c.Erase(it);
+    } else {
+      ++it;
+    }
+  }
+  EXPECT_EQ(c, (vt::Vector<int>{1, 7}));
+}

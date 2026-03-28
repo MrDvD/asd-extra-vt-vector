@@ -12,7 +12,7 @@ TEST(VtComparison, MassOperations) {
 
   std::random_device r1, r2;
   std::default_random_engine e1(r1()), e2(r2());
-  std::uniform_int_distribution<std::size_t> uniform_cmd(1, 6);
+  std::uniform_int_distribution<std::size_t> uniform_cmd(1, 7);
   std::uniform_real_distribution<float> uniform_arg(0.0, 1.0);
 
   for (std::size_t i = 0; i < 20000; i++) {
@@ -120,6 +120,36 @@ TEST(VtComparison, MassOperations) {
             EXPECT_EQ(*std_it, *vt_it);
             break;
           }
+        }
+        break;
+      }
+      case 7: {
+        EXPECT_EQ(std_array.size(), vt_array.Size());
+        if (vt_array.Size() == 0) {
+          continue;
+        }
+
+        int erase_subtype = (int)std::round(uniform_arg(e2) * 1.0);
+        if (erase_subtype == 0) {
+          int idx = (int)std::round(uniform_arg(e2) * (vt_array.Size() - 1));
+          auto std_it = std_array.erase(std_array.begin() + idx);
+          auto vt_it = vt_array.Erase(vt_array.Begin() + idx);
+
+          if (std_it != std_array.end()) {
+            EXPECT_EQ(*std_it, *vt_it);
+          }
+          EXPECT_EQ(std_array.end() - std_it, vt_array.End() - vt_it);
+        } else {
+          int idx1 = (int)std::round(uniform_arg(e2) * vt_array.Size());
+          int idx2 = idx1 + (int)std::round(uniform_arg(e2) * (vt_array.Size() - idx1));
+
+          auto std_it = std_array.erase(std_array.begin() + idx1, std_array.begin() + idx2);
+          auto vt_it = vt_array.Erase(vt_array.Begin() + idx1, vt_array.Begin() + idx2);
+
+          if (std_it != std_array.end()) {
+            EXPECT_EQ(*std_it, *vt_it);
+          }
+          EXPECT_EQ(std_array.end() - std_it, vt_array.End() - vt_it);
         }
         break;
       }
