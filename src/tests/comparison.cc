@@ -12,7 +12,7 @@ TEST(VtComparison, MassOperations) {
 
   std::random_device r1, r2;
   std::default_random_engine e1(r1()), e2(r2());
-  std::uniform_int_distribution<std::size_t> uniform_cmd(1, 7);
+  std::uniform_int_distribution<std::size_t> uniform_cmd(1, 8);
   std::uniform_real_distribution<float> uniform_arg(0.0, 1.0);
 
   for (std::size_t i = 0; i < 20000; i++) {
@@ -150,6 +150,27 @@ TEST(VtComparison, MassOperations) {
             EXPECT_EQ(*std_it, *vt_it);
           }
           EXPECT_EQ(std_array.end() - std_it, vt_array.End() - vt_it);
+        }
+        break;
+      }
+      case 8: {
+        bool use_value = uniform_arg(e2) > 0.5f;
+        std::size_t current_size = vt_array.Size();
+        std::size_t new_size;
+        float size_factor = uniform_arg(e2) * 2.0f;
+        new_size = (std::size_t)(current_size * size_factor);
+        if (use_value) {
+          int fill_value = (int)(uniform_arg(e2) * 1e6);
+          std_array.resize(new_size, fill_value);
+          vt_array.Resize(new_size, fill_value);
+        } else {
+          std_array.resize(new_size);
+          vt_array.Resize(new_size);
+        }
+        EXPECT_EQ(std_array.size(), vt_array.Size());
+        if (new_size > 0) {
+          EXPECT_EQ(std_array.back(), vt_array.Back());
+          EXPECT_EQ(std_array.front(), vt_array.Front());
         }
         break;
       }

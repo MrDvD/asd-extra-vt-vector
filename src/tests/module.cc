@@ -136,3 +136,86 @@ TEST(VtIntVector, EraseOperation) {
   }
   EXPECT_EQ(c, (vt::Vector<int>{1, 7}));
 }
+
+TEST(VtIntVector, ResizeAndReserve) {
+  vt::Vector<int> array = {1, 2, 3};
+
+  array.Reserve(10);
+  EXPECT_GE(array.Capacity(), 10);
+  EXPECT_EQ(array.Size(), 3);
+  EXPECT_EQ(array[0], 1);
+  EXPECT_EQ(array[1], 2);
+  EXPECT_EQ(array[2], 3);
+
+  array.Resize(5);
+  EXPECT_EQ(array.Size(), 5);
+  EXPECT_EQ(array[3], 0);
+  EXPECT_EQ(array[4], 0);
+
+  array.Resize(2);
+  EXPECT_EQ(array.Size(), 2);
+  EXPECT_EQ(array[0], 1);
+  EXPECT_EQ(array[1], 2);
+
+  array.Resize(4, 99);
+  EXPECT_EQ(array.Size(), 4);
+  EXPECT_EQ(array[0], 1);
+  EXPECT_EQ(array[1], 2);
+  EXPECT_EQ(array[2], 99);
+  EXPECT_EQ(array[3], 99);
+
+  std::size_t current_cap = array.Capacity();
+  array.Reserve(current_cap / 2);
+  EXPECT_EQ(array.Capacity(), current_cap);
+
+  array.Resize(0);
+  EXPECT_TRUE(array.Empty());
+  EXPECT_EQ(array.Size(), 0);
+}
+
+TEST(VtIntVector, Constructors) {
+  vt::Vector<int> v1;
+  EXPECT_TRUE(v1.Empty());
+  EXPECT_EQ(v1.Size(), 0);
+
+  vt::Vector<int> v3(5);
+  EXPECT_EQ(v3.Size(), 5);
+  for (int i = 0; i < 5; ++i) {
+    EXPECT_EQ(v3[i], 0);
+  }
+
+  vt::Vector<int> v4(3, 21);
+  EXPECT_EQ(v4.Size(), 3);
+  EXPECT_EQ(v4[0], 21);
+  EXPECT_EQ(v4[1], 21);
+  EXPECT_EQ(v4[2], 21);
+
+  std::vector<int> source = {10, 20, 30};
+  vt::Vector<int> v5(source.begin(), source.end());
+  EXPECT_EQ(v5.Size(), 3);
+  EXPECT_EQ(v5[0], 10);
+  EXPECT_EQ(v5[2], 30);
+
+  vt::Vector<int> v7(v4);
+  EXPECT_EQ(v7.Size(), v4.Size());
+  EXPECT_EQ(v7[0], 21);
+
+  vt::Vector<int> move_source = {1, 2, 3};
+  vt::Vector<int> v8(std::move(move_source));
+  EXPECT_EQ(v8.Size(), 3);
+  EXPECT_EQ(v8[0], 1);
+
+  vt::Vector<int> v9(v5, std::allocator<int>());
+  EXPECT_EQ(v9.Size(), 3);
+  EXPECT_EQ(v9[1], 20);
+
+  vt::Vector<int> move_alloc_source = {7, 8, 9};
+  vt::Vector<int> v10(std::move(move_alloc_source), std::allocator<int>());
+  EXPECT_EQ(v10.Size(), 3);
+  EXPECT_EQ(v10[2], 9);
+
+  vt::Vector<int> v11 = {100, 200, 300, 400};
+  EXPECT_EQ(v11.Size(), 4);
+  EXPECT_EQ(v11[0], 100);
+  EXPECT_EQ(v11[3], 400);
+}

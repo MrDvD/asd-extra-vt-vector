@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <initializer_list>
 #include <iterator>
+#include <memory>
 #include <stdexcept>
 #include <type_traits>
 
@@ -125,7 +126,7 @@ private:
   Pointer ptr_ = nullptr;
 };
 
-template <class ValueType>
+template <class ValueType, class Allocator = std::allocator<ValueType>>
 class Vector {
   using SizeType = std::size_t;
   using DifferenceType = std::ptrdiff_t;
@@ -141,29 +142,89 @@ class Vector {
   static_assert(std::contiguous_iterator<ConstIterator>);
 
 public:
-  Vector(std::initializer_list<ValueType> init)
-      : capacity_(init.size()), logical_size_(init.size()), array_(new ValueType[this->capacity_]) {
-    for (std::size_t i = 0; i < init.size(); i++) {
-      this->At(i) = init.begin()[i];
+  constexpr Vector() noexcept(noexcept(Allocator())) : Vector(Allocator()) {
+  }
+
+  explicit constexpr Vector(const Allocator& alloc) noexcept : alloc_(alloc) {
+  }
+
+  explicit Vector(SizeType count, const Allocator& alloc = Allocator())
+      : capacity_(count), logical_size_(count), alloc_(alloc) {
+    this->array_ = this->alloc_.allocate(Capacity());
+    for (int i = 0; i < Size(); i++) {
+      std::construct_at(this->array_ + i);
     }
   }
 
-  // copy constructor
-  constexpr Vector(Vector& other) {
-    Vector(other.Data());
+  constexpr Vector(SizeType count, ConstReference value, const Allocator& alloc = Allocator())
+      : capacity_(count), logical_size_(count), alloc_(alloc) {
+    this->array_ = this->alloc_.allocate(Capacity());
+    for (int i = 0; i < Size(); i++) {
+      this->At(i) = value;
+    }
+  }
+
+  template <std::input_iterator InputIt>
+  constexpr Vector(InputIt first, InputIt last, const Allocator& alloc = Allocator())
+      : alloc_(alloc) {
+    std::ptrdiff_t count = last - first;
+    if (count < 0) {
+      throw std::out_of_range("given iterators are invalid");
+    }
+    this->capacity_ = count;
+    this->logical_size_ = count;
+    this->array_ = this->alloc_.allocate(Size());
+    for (auto i = first; i != last; i++) {
+      this->At(i - first) = *i;
+    }
   }
 
   // move constructor
-  constexpr Vector(Vector&& other) noexcept
-      : array_(other.Data()), capacity_(other.Capacity()), logical_size_(other.Size()) {
+  constexpr Vector(Vector&& other) noexcept : Vector(std::move(other), std::move(other.alloc_)) {
+  }
+
+  // copy constructor
+  constexpr Vector(const Vector& other) : Vector(other, other.alloc_) {
+  }
+
+  constexpr Vector(const Vector& other, const std::type_identity_t<Allocator>& alloc)
+      : alloc_(alloc), capacity_(other.Capacity()), logical_size_(other.Size()) {
+    if (Capacity() == 0) {
+      this->array_ = nullptr;
+      return;
+    }
+    this->array_ = this->alloc_.allocate(Capacity());
+    for (int i = 0; i < Size(); i++) {
+      std::allocator_traits<Allocator>::construct(this->alloc_, this->array_ + i, other[i]);
+    }
+  }
+
+  // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
+  constexpr Vector(Vector&& other, const std::type_identity_t<Allocator>& alloc)
+      : alloc_(alloc), capacity_(other.Capacity()), logical_size_(other.Size()) {
+    if (Capacity() == 0) {
+      this->array_ = nullptr;
+    } else {
+      this->array_ = this->alloc_.allocate(Capacity());
+      for (int i = 0; i < Size(); i++) {
+        std::allocator_traits<Allocator>::construct(
+            this->alloc_, this->array_ + i, std::move(other[i])
+        );
+      }
+      other.~Vector();
+    }
     other.array_ = nullptr;
-    other.capacity_ = 0;
     other.logical_size_ = 0;
+    other.capacity_ = 0;
+  }
+
+  Vector(std::initializer_list<ValueType> init, const Allocator& alloc = Allocator())
+      : Vector(init.begin(), init.end(), alloc) {
   }
 
   // destructor
   constexpr ~Vector() {
-    delete[] this->array_;
+    this->alloc_.deallocate(this->array_, Capacity());
   }
 
   // copy assignment
@@ -171,12 +232,11 @@ public:
     if (this == &other) {
       return *this;
     }
+    auto copy_block = this->alloc_.allocate(other.Capacity());
+    this->alloc_.deallocate(this->array_, Capacity());
+    this->array_ = copy_block;
     this->capacity_ = other.Capacity();
     this->logical_size_ = other.Size();
-    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-    auto copy_block = new ValueType[this->capacity_];
-    delete[] this->array_;
-    this->array_ = copy_block;
     for (std::size_t i = 0; i < other.Size(); i++) {
       this->At(i) = other.Data().begin()[i];
     }
@@ -188,9 +248,9 @@ public:
     if (this == &other) {
       return *this;
     }
+    this->alloc_.deallocate(this->array_, Capacity());
     this->capacity_ = other.Capacity();
     this->logical_size_ = other.Size();
-    delete[] this->array_;
     this->array_ = other.Data();
 
     other.logical_size_ = 0;
@@ -309,12 +369,11 @@ public:
     if (new_cap <= this->Capacity()) {
       return;
     }
-    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-    auto extended_block = new ValueType[this->capacity_];
+    auto extended_block = this->alloc_.allocate(new_cap);
     for (SizeType i = 0; i < this->Size(); i++) {
       extended_block[i] = this->At(i);
     }
-    delete[] this->array_;
+    this->alloc_.deallocate(this->array_, Capacity());
     this->capacity_ = new_cap;
     this->array_ = extended_block;
   }
@@ -341,9 +400,8 @@ public:
     }
     SizeType pos = raw_pos;
     if (Size() == Capacity()) {
-      this->capacity_ = Capacity() == 0 ? 2 : Capacity() * 2;
-      // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-      auto extended_block = new ValueType[Capacity()];
+      SizeType new_cap = Capacity() == 0 ? 2 : Capacity() * 2;
+      auto extended_block = this->alloc_.allocate(new_cap);
       for (SizeType i = 0; i < pos; i++) {
         extended_block[i] = this->At(i);
       }
@@ -351,8 +409,9 @@ public:
       for (SizeType i = this->Size(); i > pos; i--) {
         extended_block[i] = this->At(i - 1);
       }
-      delete[] this->array_;
+      this->alloc_.deallocate(this->array_, Capacity());
       this->array_ = extended_block;
+      this->capacity_ = new_cap;
       this->logical_size_++;
       return IteratorImpl<ValueType>(this->array_ + pos);
     }
@@ -374,9 +433,8 @@ public:
       throw std::out_of_range("insertion count is negative");
     }
     if (Size() + count > Capacity()) {
-      this->capacity_ = Capacity() + count;
-      // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-      auto extended_block = new ValueType[Capacity()];
+      SizeType new_cap = Capacity() + count;
+      auto extended_block = this->alloc_.allocate(new_cap);
       for (SizeType i = 0; i < pos; i++) {
         extended_block[i] = this->At(i);
       }
@@ -386,8 +444,9 @@ public:
       for (SizeType i = this->Size(); i > pos; i--) {
         extended_block[i + count - 1] = this->At(i - 1);
       }
-      delete[] this->array_;
+      this->alloc_.deallocate(this->array_, Capacity());
       this->array_ = extended_block;
+      this->capacity_ = new_cap;
       this->logical_size_ += count;
       return IteratorImpl<ValueType>(this->array_ + pos);
     }
@@ -413,9 +472,8 @@ public:
       throw std::out_of_range("given iterators are reversed");
     }
     if (Size() + count > Capacity()) {
-      this->capacity_ = Capacity() + count;
-      // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-      auto extended_block = new ValueType[Capacity()];
+      SizeType new_cap = Capacity() + count;
+      auto extended_block = this->alloc_.allocate(new_cap);
       for (SizeType i = 0; i < pos; i++) {
         extended_block[i] = this->At(i);
       }
@@ -425,8 +483,9 @@ public:
       for (SizeType i = this->Size(); i > pos; i--) {
         extended_block[i + count - 1] = this->At(i - 1);
       }
-      delete[] this->array_;
+      this->alloc_.deallocate(this->array_, Capacity());
       this->array_ = extended_block;
+      this->capacity_ = new_cap;
       this->logical_size_ += count;
       return IteratorImpl<ValueType>(this->array_ + pos);
     }
@@ -479,10 +538,41 @@ public:
     this->logical_size_--;
   }
 
+  constexpr void Resize(SizeType count, ConstReference value) {
+    if (count == Size()) {
+      return;
+    }
+    if (count < Size()) {
+      this->logical_size_ = count;
+      return;
+    }
+    Reserve(count);
+    for (SizeType i = Size(); i < count; i++) {
+      this->AtUnsafe(i) = value;
+    }
+    this->logical_size_ = count;
+  }
+
+  constexpr void Resize(SizeType count) {
+    if (count == Size()) {
+      return;
+    }
+    if (count < Size()) {
+      this->logical_size_ = count;
+      return;
+    }
+    Reserve(count);
+    for (SizeType i = Size(); i < count; i++) {
+      std::construct_at(this->array_ + i);
+    }
+    this->logical_size_ = count;
+  }
+
 private:
   SizeType logical_size_ = 0;
   SizeType capacity_ = 0;
   ValueType* array_ = nullptr;
+  Allocator alloc_;
 
   constexpr Reference AtUnsafe(SizeType pos) {
     return *(this->array_ + pos);
