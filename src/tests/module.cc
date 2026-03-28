@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <list>
+#include <set>
+
 #include "../vt/vt.hpp"
 
 TEST(VtIntVector, BasicElementAccess) {
@@ -249,4 +252,92 @@ TEST(VtIntVector, AssignOperation) {
   v.Assign({1, 2, 3});
   v.Assign(empty_source.begin(), empty_source.end());
   EXPECT_TRUE(v.Empty());
+}
+
+TEST(VtIntVector, InsertRangeOperation) {
+  vt::Vector<int> v = {1, 2, 3};
+
+  std::vector<int> r1 = {10, 20};
+  auto it1 = v.InsertRange(v.Begin(), r1);
+
+  EXPECT_EQ(v.Size(), 5);
+  EXPECT_EQ(*it1, 10);
+  EXPECT_EQ(v[0], 10);
+  EXPECT_EQ(v[1], 20);
+  EXPECT_EQ(v[2], 1);
+
+  std::list<int> r2 = {100, 200};
+  auto it2 = v.InsertRange(v.Begin() + 2, r2);
+
+  EXPECT_EQ(v.Size(), 7);
+  EXPECT_EQ(*it2, 100);
+  EXPECT_EQ(v[2], 100);
+  EXPECT_EQ(v[3], 200);
+
+  auto it3 = v.InsertRange(v.End(), std::vector<int>{5, 6});
+
+  EXPECT_EQ(v.Size(), 9);
+  EXPECT_EQ(*it3, 5);
+  EXPECT_EQ(v.Back(), 6);
+
+  std::vector<int> empty_range;
+  size_t size_before = v.Size();
+  auto it4 = v.InsertRange(v.Begin() + 1, empty_range);
+
+  EXPECT_EQ(v.Size(), size_before);
+  EXPECT_EQ(it4, v.Begin() + 1);
+
+  vt::Vector<int> expected = {10, 20, 100, 200, 1, 2, 3, 5, 6};
+  EXPECT_EQ(v, expected);
+}
+
+TEST(VtIntVector, AppendRangeOperation) {
+  vt::Vector<int> v = {1, 2, 3};
+
+  std::vector<int> r1 = {4, 5};
+  v.AppendRange(r1);
+
+  EXPECT_EQ(v.Size(), 5);
+  EXPECT_EQ(v[3], 4);
+  EXPECT_EQ(v.Back(), 5);
+
+  std::list<int> r2 = {6, 7};
+  v.AppendRange(r2);
+
+  EXPECT_EQ(v.Size(), 7);
+  EXPECT_EQ(v[5], 6);
+  EXPECT_EQ(v.Back(), 7);
+
+  v.AppendRange(std::vector<int>{8, 9, 10});
+
+  EXPECT_EQ(v.Size(), 10);
+  EXPECT_EQ(v.Back(), 10);
+
+  vt::Vector<int> expected = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  EXPECT_EQ(v, expected);
+}
+
+TEST(VtIntVector, AssignRangeOperation) {
+  vt::Vector<int> v = {1, 2, 3};
+
+  std::vector<int> r1 = {10, 20, 30, 40, 50};
+  v.AssignRange(r1);
+  EXPECT_EQ(v.Size(), 5);
+  EXPECT_EQ(v[0], 10);
+  EXPECT_EQ(v.Back(), 50);
+
+  std::list<int> r2 = {99};
+  v.AssignRange(r2);
+  EXPECT_EQ(v.Size(), 1);
+  EXPECT_EQ(v[0], 99);
+
+  v.AssignRange(std::vector<int>{1, 2});
+  EXPECT_EQ(v.Size(), 2);
+  EXPECT_EQ(v[0], 1);
+  EXPECT_EQ(v[1], 2);
+
+  std::set<int> empty_range;
+  v.AssignRange(empty_range);
+  EXPECT_TRUE(v.Empty());
+  EXPECT_EQ(v.Size(), 0);
 }

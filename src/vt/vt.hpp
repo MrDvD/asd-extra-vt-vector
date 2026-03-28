@@ -1,10 +1,12 @@
 #ifndef VT_H
 #define VT_H
 
+#include <concepts>
 #include <cstddef>
 #include <initializer_list>
 #include <iterator>
 #include <memory>
+#include <ranges>
 #include <stdexcept>
 #include <type_traits>
 
@@ -126,6 +128,10 @@ private:
   Pointer ptr_ = nullptr;
 };
 
+template <class R, class T>
+concept container_compatible_range =
+    std::ranges::input_range<R> && std::convertible_to<std::ranges::range_reference_t<R>, T>;
+
 template <class ValueType, class Allocator = std::allocator<ValueType>>
 class Vector {
   using SizeType = std::size_t;
@@ -178,8 +184,9 @@ public:
     this->capacity_ = count;
     this->logical_size_ = count;
     this->array_ = GetAllocator().allocate(Size());
-    for (auto i = first; i != last; i++) {
-      this->At(i - first) = *i;
+    SizeType idx = 0;
+    for (auto i = first; i != last; i++, idx++) {
+      this->At(idx) = *i;
     }
   }
 
@@ -264,6 +271,10 @@ public:
     return *this;
   }
 
+  constexpr Vector& operator=(std::initializer_list<ValueType> ilist) {
+    this->Assign(ilist);
+  }
+
   constexpr void Assign(SizeType count, ConstReference value) {
     this->Reserve(count);
     this->logical_size_ = count;
@@ -274,19 +285,28 @@ public:
 
   template <std::input_iterator InputIt>
   constexpr void Assign(InputIt first, InputIt last) {
-    std::ptrdiff_t count = last - first;
+    std::ptrdiff_t count = std::distance(first, last);
     if (count < 0) {
       throw std::out_of_range("given iterators are invalid");
     }
     this->Reserve(count);
     this->logical_size_ = count;
-    for (auto i = first; i != last; i++) {
-      this->At(i - first) = *i;
+    SizeType idx = 0;
+    for (auto i = first; i != last; i++, idx++) {
+      this->At(idx) = *i;
     }
   }
 
   constexpr void Assign(std::initializer_list<ValueType> ilist) {
     this->Assign(ilist.begin(), ilist.end());
+  }
+
+  template <container_compatible_range<ValueType> R>
+  constexpr void AssignRange(R&& range) {
+    auto view = std::views::all(std::forward<R>(range));
+    auto first = std::ranges::begin(view);
+    auto last = std::ranges::end(view);
+    this->Assign(first, last);
   }
 
   constexpr Allocator GetAllocator() const noexcept {
@@ -501,7 +521,7 @@ public:
       throw std::out_of_range("insertion pos is invalid");
     }
     SizeType pos = raw_pos;
-    std::ptrdiff_t count = last - first;
+    std::ptrdiff_t count = std::distance(first, last);
     if (count < 0) {
       throw std::out_of_range("given iterators are reversed");
     }
@@ -511,8 +531,9 @@ public:
       for (SizeType i = 0; i < pos; i++) {
         extended_block[i] = this->At(i);
       }
-      for (auto i = first; i != last; i++) {
-        extended_block[pos + (i - first)] = *i;
+      SizeType idx = pos;
+      for (auto i = first; i != last; i++, idx++) {
+        extended_block[idx] = *i;
       }
       for (SizeType i = this->Size(); i > pos; i--) {
         extended_block[i + count - 1] = this->At(i - 1);
@@ -526,8 +547,9 @@ public:
     for (SizeType i = this->Size(); i > pos; i--) {
       this->AtUnsafe(i + count - 1) = this->At(i - 1);
     }
-    for (auto i = first; i != last; i++) {
-      this->AtUnsafe(pos + (i - first)) = *i;
+    SizeType idx = pos;
+    for (auto i = first; i != last; i++, idx++) {
+      this->AtUnsafe(idx) = *i;
     }
     this->logical_size_ += count;
     return IteratorImpl<ValueType>(this->array_ + pos);
@@ -535,6 +557,26 @@ public:
 
   constexpr Iterator Insert(ConstIterator pos_iter, std::initializer_list<ValueType> ilist) {
     return Insert(pos_iter, ilist.begin(), ilist.end());
+  }
+
+  template <container_compatible_range<ValueType> R>
+  constexpr Iterator InsertRange(ConstIterator pos, R&& range) {
+    if (pos < Begin() || pos > End()) {
+      throw std::out_of_range("pos iterator is invalid");
+    }
+    auto r_view = std::views::all(std::forward<R>(range));
+    SizeType count = std::ranges::distance(r_view);
+    SizeType offset = pos - Begin();
+    this->Reserve(Size() + count);
+    this->logical_size_ += count;
+    for (SizeType i = Size(); i > offset + count; i--) {
+      this->AtUnsafe(i - 1) = this->At(i - count - 1);
+    }
+    auto rit = std::ranges::begin(r_view);
+    for (SizeType i = 0; i < count; i++, rit++) {
+      this->AtUnsafe(offset + i) = *rit;
+    }
+    return Begin() + offset;
   }
 
   constexpr Iterator Erase(ConstIterator pos) {
@@ -563,6 +605,11 @@ public:
 
   constexpr void PushBack(ConstReference value) {
     this->Insert(this->End(), value);
+  }
+
+  template <container_compatible_range<ValueType> R>
+  constexpr void AppendRange(R&& range) {
+    this->InsertRange(End(), std::forward<R>(range));
   }
 
   constexpr void PopBack() {

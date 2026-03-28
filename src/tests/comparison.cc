@@ -12,7 +12,7 @@ TEST(VtComparison, MassIntOperations) {
 
   std::random_device r1, r2;
   std::default_random_engine e1(r1()), e2(r2());
-  std::uniform_int_distribution<std::size_t> uniform_cmd(1, 9);
+  std::uniform_int_distribution<std::size_t> uniform_cmd(1, 10);
   std::uniform_real_distribution<float> uniform_arg(0.0, 1.0);
 
   for (std::size_t i = 0; i < 20000; i++) {
@@ -213,6 +213,50 @@ TEST(VtComparison, MassIntOperations) {
           if (std_array.size() > 1) {
             std::size_t mid = std_array.size() / 2;
             EXPECT_EQ(std_array[mid], vt_array[mid]);
+          }
+        }
+        break;
+      }
+      case 10: {
+        int range_subtype = (int)std::round(uniform_arg(e2) * 2.0);
+        std::size_t count = (std::size_t)(uniform_arg(e2) * 10) + 1;
+        std::vector<int> source_vec;
+        for (std::size_t j = 0; j < count; ++j) {
+          source_vec.push_back((int)(uniform_arg(e2) * 1e6));
+        }
+
+        switch (range_subtype) {
+          case 0: {
+            int offset = (int)std::round(uniform_arg(e2) * vt_array.Size());
+            auto std_it = std_array.insert_range(std_array.begin() + offset, source_vec);
+            auto vt_it = vt_array.InsertRange(vt_array.Begin() + offset, source_vec);
+
+            EXPECT_EQ(std_array.size(), vt_array.Size());
+            if (std_it != std_array.end()) {
+              EXPECT_EQ(*std_it, *vt_it);
+            }
+            break;
+          }
+          case 1: {
+            std_array.append_range(source_vec);
+            vt_array.AppendRange(source_vec);
+
+            EXPECT_EQ(std_array.size(), vt_array.Size());
+            if (!vt_array.Empty()) {
+              EXPECT_EQ(std_array.back(), vt_array.Back());
+            }
+            break;
+          }
+          case 2: {
+            std_array.assign_range(source_vec);
+            vt_array.AssignRange(source_vec);
+
+            EXPECT_EQ(std_array.size(), vt_array.Size());
+            if (!vt_array.Empty()) {
+              EXPECT_EQ(std_array.front(), vt_array.Front());
+              EXPECT_EQ(std_array.back(), vt_array.Back());
+            }
+            break;
           }
         }
         break;
