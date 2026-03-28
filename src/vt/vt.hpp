@@ -149,16 +149,20 @@ public:
   }
 
   explicit Vector(SizeType count, const Allocator& alloc = Allocator())
-      : capacity_(count), logical_size_(count), alloc_(alloc) {
-    this->array_ = this->alloc_.allocate(Capacity());
+      : capacity_(count)
+      , logical_size_(count)
+      , alloc_(alloc)
+      , array_(GetAllocator().allocate(Capacity())) {
     for (int i = 0; i < Size(); i++) {
       std::construct_at(this->array_ + i);
     }
   }
 
   constexpr Vector(SizeType count, ConstReference value, const Allocator& alloc = Allocator())
-      : capacity_(count), logical_size_(count), alloc_(alloc) {
-    this->array_ = this->alloc_.allocate(Capacity());
+      : capacity_(count)
+      , logical_size_(count)
+      , alloc_(alloc)
+      , array_(GetAllocator().allocate(Capacity())) {
     for (int i = 0; i < Size(); i++) {
       this->At(i) = value;
     }
@@ -173,18 +177,19 @@ public:
     }
     this->capacity_ = count;
     this->logical_size_ = count;
-    this->array_ = this->alloc_.allocate(Size());
+    this->array_ = GetAllocator().allocate(Size());
     for (auto i = first; i != last; i++) {
       this->At(i - first) = *i;
     }
   }
 
   // move constructor
-  constexpr Vector(Vector&& other) noexcept : Vector(std::move(other), std::move(other.alloc_)) {
+  constexpr Vector(Vector&& other) noexcept
+      : Vector(std::move(other), std::move(other.GetAllocator())) {
   }
 
   // copy constructor
-  constexpr Vector(const Vector& other) : Vector(other, other.alloc_) {
+  constexpr Vector(const Vector& other) : Vector(other, other.GetAllocator()) {
   }
 
   constexpr Vector(const Vector& other, const std::type_identity_t<Allocator>& alloc)
@@ -193,7 +198,7 @@ public:
       this->array_ = nullptr;
       return;
     }
-    this->array_ = this->alloc_.allocate(Capacity());
+    this->array_ = GetAllocator().allocate(Capacity());
     for (int i = 0; i < Size(); i++) {
       std::allocator_traits<Allocator>::construct(this->alloc_, this->array_ + i, other[i]);
     }
@@ -205,7 +210,7 @@ public:
     if (Capacity() == 0) {
       this->array_ = nullptr;
     } else {
-      this->array_ = this->alloc_.allocate(Capacity());
+      this->array_ = GetAllocator().allocate(Capacity());
       for (int i = 0; i < Size(); i++) {
         std::allocator_traits<Allocator>::construct(
             this->alloc_, this->array_ + i, std::move(other[i])
@@ -224,7 +229,7 @@ public:
 
   // destructor
   constexpr ~Vector() {
-    this->alloc_.deallocate(this->array_, Capacity());
+    GetAllocator().deallocate(this->array_, Capacity());
   }
 
   // copy assignment
@@ -232,8 +237,8 @@ public:
     if (this == &other) {
       return *this;
     }
-    auto copy_block = this->alloc_.allocate(other.Capacity());
-    this->alloc_.deallocate(this->array_, Capacity());
+    auto copy_block = GetAllocator().allocate(other.Capacity());
+    GetAllocator().deallocate(this->array_, Capacity());
     this->array_ = copy_block;
     this->capacity_ = other.Capacity();
     this->logical_size_ = other.Size();
@@ -248,7 +253,7 @@ public:
     if (this == &other) {
       return *this;
     }
-    this->alloc_.deallocate(this->array_, Capacity());
+    GetAllocator().deallocate(this->array_, Capacity());
     this->capacity_ = other.Capacity();
     this->logical_size_ = other.Size();
     this->array_ = other.Data();
@@ -257,6 +262,35 @@ public:
     other.capacity_ = 0;
     other.array_ = nullptr;
     return *this;
+  }
+
+  constexpr void Assign(SizeType count, ConstReference value) {
+    this->Reserve(count);
+    this->logical_size_ = count;
+    for (SizeType i = 0; i < count; i++) {
+      this->At(i) = value;
+    }
+  }
+
+  template <std::input_iterator InputIt>
+  constexpr void Assign(InputIt first, InputIt last) {
+    std::ptrdiff_t count = last - first;
+    if (count < 0) {
+      throw std::out_of_range("given iterators are invalid");
+    }
+    this->Reserve(count);
+    this->logical_size_ = count;
+    for (auto i = first; i != last; i++) {
+      this->At(i - first) = *i;
+    }
+  }
+
+  constexpr void Assign(std::initializer_list<ValueType> ilist) {
+    this->Assign(ilist.begin(), ilist.end());
+  }
+
+  constexpr Allocator GetAllocator() const noexcept {
+    return this->alloc_;
   }
 
   constexpr Reference At(SizeType pos) {
@@ -369,11 +403,11 @@ public:
     if (new_cap <= this->Capacity()) {
       return;
     }
-    auto extended_block = this->alloc_.allocate(new_cap);
+    auto extended_block = GetAllocator().allocate(new_cap);
     for (SizeType i = 0; i < this->Size(); i++) {
       extended_block[i] = this->At(i);
     }
-    this->alloc_.deallocate(this->array_, Capacity());
+    GetAllocator().deallocate(this->array_, Capacity());
     this->capacity_ = new_cap;
     this->array_ = extended_block;
   }
@@ -401,7 +435,7 @@ public:
     SizeType pos = raw_pos;
     if (Size() == Capacity()) {
       SizeType new_cap = Capacity() == 0 ? 2 : Capacity() * 2;
-      auto extended_block = this->alloc_.allocate(new_cap);
+      auto extended_block = GetAllocator().allocate(new_cap);
       for (SizeType i = 0; i < pos; i++) {
         extended_block[i] = this->At(i);
       }
@@ -409,7 +443,7 @@ public:
       for (SizeType i = this->Size(); i > pos; i--) {
         extended_block[i] = this->At(i - 1);
       }
-      this->alloc_.deallocate(this->array_, Capacity());
+      GetAllocator().deallocate(this->array_, Capacity());
       this->array_ = extended_block;
       this->capacity_ = new_cap;
       this->logical_size_++;
@@ -434,7 +468,7 @@ public:
     }
     if (Size() + count > Capacity()) {
       SizeType new_cap = Capacity() + count;
-      auto extended_block = this->alloc_.allocate(new_cap);
+      auto extended_block = GetAllocator().allocate(new_cap);
       for (SizeType i = 0; i < pos; i++) {
         extended_block[i] = this->At(i);
       }
@@ -444,7 +478,7 @@ public:
       for (SizeType i = this->Size(); i > pos; i--) {
         extended_block[i + count - 1] = this->At(i - 1);
       }
-      this->alloc_.deallocate(this->array_, Capacity());
+      GetAllocator().deallocate(this->array_, Capacity());
       this->array_ = extended_block;
       this->capacity_ = new_cap;
       this->logical_size_ += count;
@@ -473,7 +507,7 @@ public:
     }
     if (Size() + count > Capacity()) {
       SizeType new_cap = Capacity() + count;
-      auto extended_block = this->alloc_.allocate(new_cap);
+      auto extended_block = GetAllocator().allocate(new_cap);
       for (SizeType i = 0; i < pos; i++) {
         extended_block[i] = this->At(i);
       }
@@ -483,7 +517,7 @@ public:
       for (SizeType i = this->Size(); i > pos; i--) {
         extended_block[i + count - 1] = this->At(i - 1);
       }
-      this->alloc_.deallocate(this->array_, Capacity());
+      GetAllocator().deallocate(this->array_, Capacity());
       this->array_ = extended_block;
       this->capacity_ = new_cap;
       this->logical_size_ += count;

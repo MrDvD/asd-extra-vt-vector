@@ -219,3 +219,34 @@ TEST(VtIntVector, Constructors) {
   EXPECT_EQ(v11[0], 100);
   EXPECT_EQ(v11[3], 400);
 }
+
+TEST(VtIntVector, AssignOperation) {
+  vt::Vector<int> v = {1, 2, 3};
+
+  v.Assign(5, 100);
+  EXPECT_EQ(v.Size(), 5);
+  for (int i = 0; i < 5; ++i) {
+    EXPECT_EQ(v[i], 100);
+  }
+
+  std::vector<int> source = {10, 20, 30, 40};
+  v.Assign(source.begin(), source.end());
+  EXPECT_EQ(v.Size(), 4);
+  EXPECT_EQ(v[0], 10);
+  EXPECT_EQ(v[3], 40);
+
+  v.Assign({7, 8, 9});
+  EXPECT_EQ(v.Size(), 3);
+  EXPECT_EQ(v[0], 7);
+  EXPECT_EQ(v[1], 8);
+  EXPECT_EQ(v[2], 9);
+
+  v.Assign(0, 0);
+  EXPECT_TRUE(v.Empty());
+  EXPECT_EQ(v.Size(), 0);
+
+  std::vector<int> empty_source;
+  v.Assign({1, 2, 3});
+  v.Assign(empty_source.begin(), empty_source.end());
+  EXPECT_TRUE(v.Empty());
+}

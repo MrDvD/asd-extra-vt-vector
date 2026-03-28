@@ -6,13 +6,13 @@
 
 #include "../vt/vt.hpp"
 
-TEST(VtComparison, MassOperations) {
+TEST(VtComparison, MassIntOperations) {
   std::vector<int> std_array = {};
   vt::Vector<int> vt_array = {};
 
   std::random_device r1, r2;
   std::default_random_engine e1(r1()), e2(r2());
-  std::uniform_int_distribution<std::size_t> uniform_cmd(1, 8);
+  std::uniform_int_distribution<std::size_t> uniform_cmd(1, 9);
   std::uniform_real_distribution<float> uniform_arg(0.0, 1.0);
 
   for (std::size_t i = 0; i < 20000; i++) {
@@ -171,6 +171,49 @@ TEST(VtComparison, MassOperations) {
         if (new_size > 0) {
           EXPECT_EQ(std_array.back(), vt_array.Back());
           EXPECT_EQ(std_array.front(), vt_array.Front());
+        }
+        break;
+      }
+      case 9: {
+        int assign_subtype = (int)std::round(uniform_arg(e2) * 2.0);
+        std::size_t count = (std::size_t)(uniform_arg(e2) * 25);
+
+        switch (assign_subtype) {
+          case 0: {
+            int value = (int)(uniform_arg(e2) * 1e6);
+            std_array.assign(count, value);
+            vt_array.Assign(count, value);
+            break;
+          }
+          case 1: {
+            std::vector<int> temp_source;
+            for (std::size_t j = 0; j < count; ++j) {
+              temp_source.push_back((int)(uniform_arg(e2) * 1e6));
+            }
+            std_array.assign(temp_source.begin(), temp_source.end());
+            vt_array.Assign(temp_source.begin(), temp_source.end());
+            break;
+          }
+          case 2: {
+            int v1 = (int)(uniform_arg(e2) * 1e6);
+            int v2 = (int)(uniform_arg(e2) * 1e6);
+            int v3 = (int)(uniform_arg(e2) * 1e6);
+
+            std_array.assign({v1, v2, v3});
+            vt_array.Assign({v1, v2, v3});
+            break;
+          }
+        }
+
+        EXPECT_EQ(std_array.size(), vt_array.Size());
+        if (!vt_array.Empty()) {
+          EXPECT_EQ(std_array.front(), vt_array.Front());
+          EXPECT_EQ(std_array.back(), vt_array.Back());
+
+          if (std_array.size() > 1) {
+            std::size_t mid = std_array.size() / 2;
+            EXPECT_EQ(std_array[mid], vt_array[mid]);
+          }
         }
         break;
       }
