@@ -4,6 +4,7 @@ project(vt_vector)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # added for __cpp_lib_containers_ranges
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(FetchContent)
 
