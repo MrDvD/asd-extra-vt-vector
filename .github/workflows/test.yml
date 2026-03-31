@@ -5,15 +5,17 @@ on:
     branches: [main, dev]
 
 jobs:
-  test-project:
-    name: Test Project
-    runs-on: ubuntu-24.04
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/itmo-asd-labin-2026/gcc-environment:15.2
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6.0.2
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Configure CMake
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE="Debug"
 
       - name: Build Project
-        uses: threeal/cmake-action@v2.1.0
-
-      - name: Test Project
-        uses: threeal/ctest-action@v1.1.0
+        run: cmake --build build
